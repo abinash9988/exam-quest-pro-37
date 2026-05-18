@@ -9,38 +9,134 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MockTestIndexRouteImport } from './routes/mock-test/index'
+import { Route as ResultResultIdRouteImport } from './routes/result/$resultId'
+import { Route as MockTestSlugRouteImport } from './routes/mock-test/$slug'
+import { Route as ExamExamIdRouteImport } from './routes/exam/$examId'
 
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MockTestIndexRoute = MockTestIndexRouteImport.update({
+  id: '/mock-test/',
+  path: '/mock-test/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResultResultIdRoute = ResultResultIdRouteImport.update({
+  id: '/result/$resultId',
+  path: '/result/$resultId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MockTestSlugRoute = MockTestSlugRouteImport.update({
+  id: '/mock-test/$slug',
+  path: '/mock-test/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExamExamIdRoute = ExamExamIdRouteImport.update({
+  id: '/exam/$examId',
+  path: '/exam/$examId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
+  '/exam/$examId': typeof ExamExamIdRoute
+  '/mock-test/$slug': typeof MockTestSlugRoute
+  '/result/$resultId': typeof ResultResultIdRoute
+  '/mock-test/': typeof MockTestIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
+  '/exam/$examId': typeof ExamExamIdRoute
+  '/mock-test/$slug': typeof MockTestSlugRoute
+  '/result/$resultId': typeof ResultResultIdRoute
+  '/mock-test': typeof MockTestIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
+  '/exam/$examId': typeof ExamExamIdRoute
+  '/mock-test/$slug': typeof MockTestSlugRoute
+  '/result/$resultId': typeof ResultResultIdRoute
+  '/mock-test/': typeof MockTestIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/exam/$examId'
+    | '/mock-test/$slug'
+    | '/result/$resultId'
+    | '/mock-test/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/exam/$examId'
+    | '/mock-test/$slug'
+    | '/result/$resultId'
+    | '/mock-test'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/exam/$examId'
+    | '/mock-test/$slug'
+    | '/result/$resultId'
+    | '/mock-test/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  DashboardRoute: typeof DashboardRoute
+  ExamExamIdRoute: typeof ExamExamIdRoute
+  MockTestSlugRoute: typeof MockTestSlugRoute
+  ResultResultIdRoute: typeof ResultResultIdRoute
+  MockTestIndexRoute: typeof MockTestIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +144,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mock-test/': {
+      id: '/mock-test/'
+      path: '/mock-test'
+      fullPath: '/mock-test/'
+      preLoaderRoute: typeof MockTestIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/result/$resultId': {
+      id: '/result/$resultId'
+      path: '/result/$resultId'
+      fullPath: '/result/$resultId'
+      preLoaderRoute: typeof ResultResultIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mock-test/$slug': {
+      id: '/mock-test/$slug'
+      path: '/mock-test/$slug'
+      fullPath: '/mock-test/$slug'
+      preLoaderRoute: typeof MockTestSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/exam/$examId': {
+      id: '/exam/$examId'
+      path: '/exam/$examId'
+      fullPath: '/exam/$examId'
+      preLoaderRoute: typeof ExamExamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  DashboardRoute: DashboardRoute,
+  ExamExamIdRoute: ExamExamIdRoute,
+  MockTestSlugRoute: MockTestSlugRoute,
+  ResultResultIdRoute: ResultResultIdRoute,
+  MockTestIndexRoute: MockTestIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
