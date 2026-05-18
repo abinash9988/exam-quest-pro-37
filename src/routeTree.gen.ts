@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MockTestIndexRouteImport } from './routes/mock-test/index'
 import { Route as ResultResultIdRouteImport } from './routes/result/$resultId'
 import { Route as MockTestSlugRouteImport } from './routes/mock-test/$slug'
 import { Route as ExamExamIdRouteImport } from './routes/exam/$examId'
 
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +49,7 @@ const ExamExamIdRoute = ExamExamIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
@@ -67,6 +76,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/dashboard'
     | '/exam/$examId'
     | '/mock-test/$slug'
     | '/result/$resultId'
@@ -74,6 +84,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/dashboard'
     | '/exam/$examId'
     | '/mock-test/$slug'
     | '/result/$resultId'
@@ -81,6 +92,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/dashboard'
     | '/exam/$examId'
     | '/mock-test/$slug'
     | '/result/$resultId'
@@ -89,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
   ExamExamIdRoute: typeof ExamExamIdRoute
   MockTestSlugRoute: typeof MockTestSlugRoute
   ResultResultIdRoute: typeof ResultResultIdRoute
@@ -97,6 +110,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -137,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
   ExamExamIdRoute: ExamExamIdRoute,
   MockTestSlugRoute: MockTestSlugRoute,
   ResultResultIdRoute: ResultResultIdRoute,
