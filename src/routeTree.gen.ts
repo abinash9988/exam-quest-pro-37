@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MockTestIndexRouteImport } from './routes/mock-test/index'
+import { Route as MockTestSlugRouteImport } from './routes/mock-test/$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,30 +23,39 @@ const MockTestIndexRoute = MockTestIndexRouteImport.update({
   path: '/mock-test/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MockTestSlugRoute = MockTestSlugRouteImport.update({
+  id: '/mock-test/$slug',
+  path: '/mock-test/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/mock-test/$slug': typeof MockTestSlugRoute
   '/mock-test/': typeof MockTestIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/mock-test/$slug': typeof MockTestSlugRoute
   '/mock-test': typeof MockTestIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/mock-test/$slug': typeof MockTestSlugRoute
   '/mock-test/': typeof MockTestIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/mock-test/'
+  fullPaths: '/' | '/mock-test/$slug' | '/mock-test/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/mock-test'
-  id: '__root__' | '/' | '/mock-test/'
+  to: '/' | '/mock-test/$slug' | '/mock-test'
+  id: '__root__' | '/' | '/mock-test/$slug' | '/mock-test/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MockTestSlugRoute: typeof MockTestSlugRoute
   MockTestIndexRoute: typeof MockTestIndexRoute
 }
 
@@ -65,11 +75,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MockTestIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mock-test/$slug': {
+      id: '/mock-test/$slug'
+      path: '/mock-test/$slug'
+      fullPath: '/mock-test/$slug'
+      preLoaderRoute: typeof MockTestSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MockTestSlugRoute: MockTestSlugRoute,
   MockTestIndexRoute: MockTestIndexRoute,
 }
 export const routeTree = rootRouteImport
