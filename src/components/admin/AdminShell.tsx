@@ -3,11 +3,11 @@ import { useState } from "react";
 import { LayoutDashboard, FileText, Upload, Menu, X, Plus, Search, ChevronRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-const nav = [
+const nav: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/questions", label: "Questions", icon: FileText },
   { to: "/admin/import", label: "Import", icon: Upload },
-] as const;
+];
 
 export function AdminShell() {
   const [open, setOpen] = useState(false);
@@ -38,7 +38,7 @@ export function AdminShell() {
 
         <div className="px-3 py-3">
           <Link
-            to="/admin/questions/create"
+            to={"/admin/questions/create" as string}
             onClick={() => setOpen(false)}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-soft)] transition hover:opacity-90"
           >

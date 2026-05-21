@@ -32,7 +32,7 @@ export function QuestionEditor({ initial, mode }: Props) {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [errors, setErrors] = useState<string[]>([]);
   const navigate = useNavigate();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-save simulation
   useEffect(() => {
