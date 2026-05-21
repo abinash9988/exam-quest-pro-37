@@ -39,7 +39,9 @@ export function QuestionEditor({ initial, mode }: Props) {
     setSaveState("saving");
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => setSaveState("saved"), 800);
-    return () => debounceRef.current && clearTimeout(debounceRef.current);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [q]);
 
   const set = <K extends keyof AdminQuestion>(k: K, v: AdminQuestion[K]) => setQ((s) => ({ ...s, [k]: v }));

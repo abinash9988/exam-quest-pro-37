@@ -1,11 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { CheckCircle2, AlertTriangle, Copy } from "lucide-react";
-import { getImportJob } from "@/lib/adminMock";
+import { getImportJob, type ImportJob } from "@/lib/adminMock";
 
 export const Route = createFileRoute("/admin/import/review/$jobId")({
   head: ({ params }) => ({ meta: [{ title: `Review ${params.jobId} · Admin` }] }),
-  loader: ({ params }) => {
+  loader: ({ params }): ImportJob => {
     const j = getImportJob(params.jobId);
     if (!j) throw notFound();
     return j;
