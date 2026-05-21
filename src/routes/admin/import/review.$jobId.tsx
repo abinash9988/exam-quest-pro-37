@@ -27,7 +27,7 @@ export const Route = createFileRoute("/admin/import/review/$jobId")({
 });
 
 function ReviewJob() {
-  const job = Route.useLoaderData();
+  const job = Route.useLoaderData() as ImportJob;
   const [tab, setTab] = useState<"all" | "errors" | "duplicates">("all");
   const rows = job.rows.filter((r) =>
     tab === "all" ? true : tab === "errors" ? r.status === "invalid" : r.status === "duplicate"
