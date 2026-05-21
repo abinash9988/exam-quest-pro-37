@@ -13,9 +13,15 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MockTestIndexRouteImport } from './routes/mock-test/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ResultResultIdRouteImport } from './routes/result/$resultId'
 import { Route as MockTestSlugRouteImport } from './routes/mock-test/$slug'
 import { Route as ExamExamIdRouteImport } from './routes/exam/$examId'
+import { Route as AdminQuestionsIndexRouteImport } from './routes/admin/questions/index'
+import { Route as AdminImportIndexRouteImport } from './routes/admin/import/index'
+import { Route as AdminQuestionsCreateRouteImport } from './routes/admin/questions/create'
+import { Route as AdminQuestionsEditIdRouteImport } from './routes/admin/questions/edit.$id'
+import { Route as AdminImportReviewJobIdRouteImport } from './routes/admin/import/review.$jobId'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -37,6 +43,11 @@ const MockTestIndexRoute = MockTestIndexRouteImport.update({
   path: '/mock-test/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const ResultResultIdRoute = ResultResultIdRouteImport.update({
   id: '/result/$resultId',
   path: '/result/$resultId',
@@ -52,34 +63,76 @@ const ExamExamIdRoute = ExamExamIdRouteImport.update({
   path: '/exam/$examId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminQuestionsIndexRoute = AdminQuestionsIndexRouteImport.update({
+  id: '/questions/',
+  path: '/questions/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminImportIndexRoute = AdminImportIndexRouteImport.update({
+  id: '/import/',
+  path: '/import/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminQuestionsCreateRoute = AdminQuestionsCreateRouteImport.update({
+  id: '/questions/create',
+  path: '/questions/create',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminQuestionsEditIdRoute = AdminQuestionsEditIdRouteImport.update({
+  id: '/questions/edit/$id',
+  path: '/questions/edit/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminImportReviewJobIdRoute = AdminImportReviewJobIdRouteImport.update({
+  id: '/import/review/$jobId',
+  path: '/import/review/$jobId',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
+  '/admin/': typeof AdminIndexRoute
   '/mock-test/': typeof MockTestIndexRoute
+  '/admin/questions/create': typeof AdminQuestionsCreateRoute
+  '/admin/import/': typeof AdminImportIndexRoute
+  '/admin/questions/': typeof AdminQuestionsIndexRoute
+  '/admin/import/review/$jobId': typeof AdminImportReviewJobIdRoute
+  '/admin/questions/edit/$id': typeof AdminQuestionsEditIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
+  '/admin': typeof AdminIndexRoute
   '/mock-test': typeof MockTestIndexRoute
+  '/admin/questions/create': typeof AdminQuestionsCreateRoute
+  '/admin/import': typeof AdminImportIndexRoute
+  '/admin/questions': typeof AdminQuestionsIndexRoute
+  '/admin/import/review/$jobId': typeof AdminImportReviewJobIdRoute
+  '/admin/questions/edit/$id': typeof AdminQuestionsEditIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
+  '/admin/': typeof AdminIndexRoute
   '/mock-test/': typeof MockTestIndexRoute
+  '/admin/questions/create': typeof AdminQuestionsCreateRoute
+  '/admin/import/': typeof AdminImportIndexRoute
+  '/admin/questions/': typeof AdminQuestionsIndexRoute
+  '/admin/import/review/$jobId': typeof AdminImportReviewJobIdRoute
+  '/admin/questions/edit/$id': typeof AdminQuestionsEditIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,16 +143,27 @@ export interface FileRouteTypes {
     | '/exam/$examId'
     | '/mock-test/$slug'
     | '/result/$resultId'
+    | '/admin/'
     | '/mock-test/'
+    | '/admin/questions/create'
+    | '/admin/import/'
+    | '/admin/questions/'
+    | '/admin/import/review/$jobId'
+    | '/admin/questions/edit/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/dashboard'
     | '/exam/$examId'
     | '/mock-test/$slug'
     | '/result/$resultId'
+    | '/admin'
     | '/mock-test'
+    | '/admin/questions/create'
+    | '/admin/import'
+    | '/admin/questions'
+    | '/admin/import/review/$jobId'
+    | '/admin/questions/edit/$id'
   id:
     | '__root__'
     | '/'
@@ -108,12 +172,18 @@ export interface FileRouteTypes {
     | '/exam/$examId'
     | '/mock-test/$slug'
     | '/result/$resultId'
+    | '/admin/'
     | '/mock-test/'
+    | '/admin/questions/create'
+    | '/admin/import/'
+    | '/admin/questions/'
+    | '/admin/import/review/$jobId'
+    | '/admin/questions/edit/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   ExamExamIdRoute: typeof ExamExamIdRoute
   MockTestSlugRoute: typeof MockTestSlugRoute
@@ -151,6 +221,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MockTestIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/result/$resultId': {
       id: '/result/$resultId'
       path: '/result/$resultId'
@@ -172,12 +249,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExamExamIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/questions/': {
+      id: '/admin/questions/'
+      path: '/questions'
+      fullPath: '/admin/questions/'
+      preLoaderRoute: typeof AdminQuestionsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/import/': {
+      id: '/admin/import/'
+      path: '/import'
+      fullPath: '/admin/import/'
+      preLoaderRoute: typeof AdminImportIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/questions/create': {
+      id: '/admin/questions/create'
+      path: '/questions/create'
+      fullPath: '/admin/questions/create'
+      preLoaderRoute: typeof AdminQuestionsCreateRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/questions/edit/$id': {
+      id: '/admin/questions/edit/$id'
+      path: '/questions/edit/$id'
+      fullPath: '/admin/questions/edit/$id'
+      preLoaderRoute: typeof AdminQuestionsEditIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/import/review/$jobId': {
+      id: '/admin/import/review/$jobId'
+      path: '/import/review/$jobId'
+      fullPath: '/admin/import/review/$jobId'
+      preLoaderRoute: typeof AdminImportReviewJobIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminQuestionsCreateRoute: typeof AdminQuestionsCreateRoute
+  AdminImportIndexRoute: typeof AdminImportIndexRoute
+  AdminQuestionsIndexRoute: typeof AdminQuestionsIndexRoute
+  AdminImportReviewJobIdRoute: typeof AdminImportReviewJobIdRoute
+  AdminQuestionsEditIdRoute: typeof AdminQuestionsEditIdRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+  AdminQuestionsCreateRoute: AdminQuestionsCreateRoute,
+  AdminImportIndexRoute: AdminImportIndexRoute,
+  AdminQuestionsIndexRoute: AdminQuestionsIndexRoute,
+  AdminImportReviewJobIdRoute: AdminImportReviewJobIdRoute,
+  AdminQuestionsEditIdRoute: AdminQuestionsEditIdRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   DashboardRoute: DashboardRoute,
   ExamExamIdRoute: ExamExamIdRoute,
   MockTestSlugRoute: MockTestSlugRoute,
