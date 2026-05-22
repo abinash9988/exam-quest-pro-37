@@ -31,11 +31,29 @@ export interface AdminQuestion {
   author: string;
 }
 
+export type ImportJobStatus =
+  | "Uploaded" | "Parsing" | "Review" | "Approved" | "Published" | "Failed"
+  | "Processed" | "Processing";
+export type ImportRowStatus = "valid" | "invalid" | "duplicate" | "warning";
+export type ImportRowWorkflow = "pending" | "approved" | "rejected" | "published";
+
+export interface ImportRowOption { html: string; isCorrect: boolean }
+
 export interface ImportRow {
   rowNo: number;
   question: string;
   subject: string;
-  status: "valid" | "invalid" | "duplicate";
+  chapter: string;
+  difficulty: Difficulty;
+  type: QuestionType;
+  options: ImportRowOption[];
+  correctAnswer: string;
+  explanation: string;
+  status: ImportRowStatus;
+  workflow: ImportRowWorkflow;
+  errors: string[];
+  warnings: string[];
+  /** legacy single-error field */
   error?: string;
 }
 
@@ -43,11 +61,13 @@ export interface ImportJob {
   id: string;
   fileName: string;
   uploadedAt: string;
-  status: "Processed" | "Processing" | "Failed";
+  uploadedBy: string;
+  status: ImportJobStatus;
   total: number;
   valid: number;
   invalid: number;
   duplicates: number;
+  warnings: number;
   rows: ImportRow[];
 }
 
@@ -124,51 +144,62 @@ const seedQuestion = (i: number): AdminQuestion => {
 
 export const adminQuestions: AdminQuestion[] = Array.from({ length: 36 }, (_, i) => seedQuestion(i));
 
+function seedRow(i: number, subj: string): ImportRow {
+  const mod = i % 11;
+  const status: ImportRowStatus =
+    mod === 0 ? "invalid" : mod === 3 ? "duplicate" : mod === 6 ? "warning" : "valid";
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  if (status === "invalid") errors.push(i % 2 === 0 ? "Missing correct option" : "Invalid difficulty value");
+  if (status === "duplicate") warnings.push("Duplicate of an existing question");
+  if (status === "warning") warnings.push("Explanation is empty");
+  const ch = chaptersBySubject[subj][i % chaptersBySubject[subj].length];
+  const diffs: Difficulty[] = ["Easy", "Medium", "Hard"];
+  return {
+    rowNo: i + 1,
+    question: `Imported Q${i + 1}: A ${subj.toLowerCase()} problem about ${ch.toLowerCase()} — option set ${i + 1}.`,
+    subject: subj,
+    chapter: ch,
+    difficulty: diffs[i % 3],
+    type: "MCQ_SINGLE",
+    options: [
+      { html: "Option A", isCorrect: i % 4 === 0 },
+      { html: "Option B", isCorrect: i % 4 === 1 },
+      { html: "Option C", isCorrect: i % 4 === 2 },
+      { html: "Option D", isCorrect: i % 4 === 3 },
+    ],
+    correctAnswer: ["A", "B", "C", "D"][i % 4],
+    explanation: status === "warning" ? "" : `Worked solution for row ${i + 1}.`,
+    status,
+    workflow: "pending",
+    errors,
+    warnings,
+    error: errors[0],
+  };
+}
+
+function makeJob(opts: {
+  id: string; fileName: string; uploadedAt: string; uploadedBy: string;
+  status: ImportJobStatus; subj: string; count: number;
+}): ImportJob {
+  const rows = Array.from({ length: opts.count }, (_, i) => seedRow(i, opts.subj));
+  return {
+    id: opts.id, fileName: opts.fileName, uploadedAt: opts.uploadedAt, uploadedBy: opts.uploadedBy,
+    status: opts.status,
+    total: rows.length,
+    valid: rows.filter((r) => r.status === "valid").length,
+    invalid: rows.filter((r) => r.status === "invalid").length,
+    duplicates: rows.filter((r) => r.status === "duplicate").length,
+    warnings: rows.filter((r) => r.status === "warning").length,
+    rows,
+  };
+}
+
 export const importJobs: ImportJob[] = [
-  {
-    id: "job-2041",
-    fileName: "physics-bulk-nov.csv",
-    uploadedAt: isoOffset(0),
-    status: "Processed",
-    total: 120,
-    valid: 104,
-    invalid: 9,
-    duplicates: 7,
-    rows: Array.from({ length: 12 }, (_, i) => ({
-      rowNo: i + 1,
-      question: `Imported row ${i + 1}: A body of mass 2kg is acted upon...`,
-      subject: "Physics",
-      status: i % 5 === 0 ? "invalid" : i % 7 === 0 ? "duplicate" : "valid",
-      error: i % 5 === 0 ? "Missing correct option" : undefined,
-    })),
-  },
-  {
-    id: "job-2040",
-    fileName: "chem-organic.csv",
-    uploadedAt: isoOffset(1),
-    status: "Processed",
-    total: 60,
-    valid: 58,
-    invalid: 1,
-    duplicates: 1,
-    rows: Array.from({ length: 8 }, (_, i) => ({
-      rowNo: i + 1,
-      question: `Organic chemistry row ${i + 1}: IUPAC name of...`,
-      subject: "Chemistry",
-      status: "valid" as const,
-    })),
-  },
-  {
-    id: "job-2039",
-    fileName: "maths-calc.csv",
-    uploadedAt: isoOffset(3),
-    status: "Failed",
-    total: 0,
-    valid: 0,
-    invalid: 0,
-    duplicates: 0,
-    rows: [],
-  },
+  makeJob({ id: "job-2041", fileName: "physics-bulk-nov.csv", uploadedAt: isoOffset(0), uploadedBy: "Priya S.", status: "Review", subj: "Physics", count: 24 }),
+  makeJob({ id: "job-2040", fileName: "chem-organic.xlsx", uploadedAt: isoOffset(1), uploadedBy: "Rahul V.", status: "Published", subj: "Chemistry", count: 18 }),
+  makeJob({ id: "job-2039", fileName: "maths-calc.csv", uploadedAt: isoOffset(3), uploadedBy: "Anjali", status: "Failed", subj: "Maths", count: 0 }),
+  makeJob({ id: "job-2038", fileName: "bio-genetics.csv", uploadedAt: isoOffset(5), uploadedBy: "Priya S.", status: "Approved", subj: "Biology", count: 16 }),
 ];
 
 export const recentActivity: ActivityItem[] = [
@@ -210,3 +241,62 @@ export const emptyQuestion = (): AdminQuestion => ({
   updatedAt: new Date().toISOString(),
   author: "You",
 });
+
+// ===== Import helpers =====
+export function createImportJob(file: { name: string; size: number }): ImportJob {
+  const id = `job-${Date.now().toString().slice(-5)}`;
+  const subj = subjects[Math.floor(Math.random() * subjects.length)];
+  const count = 18 + Math.floor(Math.random() * 18);
+  const job = makeJob({
+    id, fileName: file.name, uploadedAt: new Date().toISOString(),
+    uploadedBy: "You", status: "Review", subj, count,
+  });
+  importJobs.unshift(job);
+  return job;
+}
+
+export function updateImportRow(jobId: string, rowNo: number, patch: Partial<ImportRow>) {
+  const job = importJobs.find((j) => j.id === jobId);
+  if (!job) return;
+  const row = job.rows.find((r) => r.rowNo === rowNo);
+  if (!row) return;
+  Object.assign(row, patch);
+  validateRow(row);
+  recountJob(job);
+}
+
+export function validateRow(r: ImportRow) {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  if (!r.question?.trim()) errors.push("Question text is required");
+  if (!r.subject?.trim()) errors.push("Subject is required");
+  if (!r.chapter?.trim()) warnings.push("Chapter is missing");
+  if (!(["Easy","Medium","Hard"] as Difficulty[]).includes(r.difficulty)) errors.push("Invalid difficulty");
+  if ((r.type === "MCQ_SINGLE" || r.type === "MCQ_MULTI") && !r.options.some((o) => o.isCorrect)) {
+    errors.push("No correct option marked");
+  }
+  if (!r.explanation?.trim()) warnings.push("Explanation is empty");
+  r.errors = errors;
+  r.warnings = warnings;
+  r.error = errors[0];
+  r.status = errors.length ? "invalid" : warnings.length ? "warning" : "valid";
+}
+
+function recountJob(job: ImportJob) {
+  job.total = job.rows.length;
+  job.valid = job.rows.filter((r) => r.status === "valid").length;
+  job.invalid = job.rows.filter((r) => r.status === "invalid").length;
+  job.duplicates = job.rows.filter((r) => r.status === "duplicate").length;
+  job.warnings = job.rows.filter((r) => r.status === "warning").length;
+}
+
+export function bulkUpdateRows(jobId: string, rowNos: number[], patch: Partial<ImportRow>) {
+  rowNos.forEach((n) => updateImportRow(jobId, n, patch));
+}
+
+export function deleteRows(jobId: string, rowNos: number[]) {
+  const job = importJobs.find((j) => j.id === jobId);
+  if (!job) return;
+  job.rows = job.rows.filter((r) => !rowNos.includes(r.rowNo));
+  recountJob(job);
+}
