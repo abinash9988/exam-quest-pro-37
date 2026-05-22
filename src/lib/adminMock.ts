@@ -144,51 +144,62 @@ const seedQuestion = (i: number): AdminQuestion => {
 
 export const adminQuestions: AdminQuestion[] = Array.from({ length: 36 }, (_, i) => seedQuestion(i));
 
+function seedRow(i: number, subj: string): ImportRow {
+  const mod = i % 11;
+  const status: ImportRowStatus =
+    mod === 0 ? "invalid" : mod === 3 ? "duplicate" : mod === 6 ? "warning" : "valid";
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  if (status === "invalid") errors.push(i % 2 === 0 ? "Missing correct option" : "Invalid difficulty value");
+  if (status === "duplicate") warnings.push("Duplicate of an existing question");
+  if (status === "warning") warnings.push("Explanation is empty");
+  const ch = chaptersBySubject[subj][i % chaptersBySubject[subj].length];
+  const diffs: Difficulty[] = ["Easy", "Medium", "Hard"];
+  return {
+    rowNo: i + 1,
+    question: `Imported Q${i + 1}: A ${subj.toLowerCase()} problem about ${ch.toLowerCase()} — option set ${i + 1}.`,
+    subject: subj,
+    chapter: ch,
+    difficulty: diffs[i % 3],
+    type: "MCQ_SINGLE",
+    options: [
+      { html: "Option A", isCorrect: i % 4 === 0 },
+      { html: "Option B", isCorrect: i % 4 === 1 },
+      { html: "Option C", isCorrect: i % 4 === 2 },
+      { html: "Option D", isCorrect: i % 4 === 3 },
+    ],
+    correctAnswer: ["A", "B", "C", "D"][i % 4],
+    explanation: status === "warning" ? "" : `Worked solution for row ${i + 1}.`,
+    status,
+    workflow: "pending",
+    errors,
+    warnings,
+    error: errors[0],
+  };
+}
+
+function makeJob(opts: {
+  id: string; fileName: string; uploadedAt: string; uploadedBy: string;
+  status: ImportJobStatus; subj: string; count: number;
+}): ImportJob {
+  const rows = Array.from({ length: opts.count }, (_, i) => seedRow(i, opts.subj));
+  return {
+    id: opts.id, fileName: opts.fileName, uploadedAt: opts.uploadedAt, uploadedBy: opts.uploadedBy,
+    status: opts.status,
+    total: rows.length,
+    valid: rows.filter((r) => r.status === "valid").length,
+    invalid: rows.filter((r) => r.status === "invalid").length,
+    duplicates: rows.filter((r) => r.status === "duplicate").length,
+    warnings: rows.filter((r) => r.status === "warning").length,
+    rows,
+  };
+}
+
 export const importJobs: ImportJob[] = [
-  {
-    id: "job-2041",
-    fileName: "physics-bulk-nov.csv",
-    uploadedAt: isoOffset(0),
-    status: "Processed",
-    total: 120,
-    valid: 104,
-    invalid: 9,
-    duplicates: 7,
-    rows: Array.from({ length: 12 }, (_, i) => ({
-      rowNo: i + 1,
-      question: `Imported row ${i + 1}: A body of mass 2kg is acted upon...`,
-      subject: "Physics",
-      status: i % 5 === 0 ? "invalid" : i % 7 === 0 ? "duplicate" : "valid",
-      error: i % 5 === 0 ? "Missing correct option" : undefined,
-    })),
-  },
-  {
-    id: "job-2040",
-    fileName: "chem-organic.csv",
-    uploadedAt: isoOffset(1),
-    status: "Processed",
-    total: 60,
-    valid: 58,
-    invalid: 1,
-    duplicates: 1,
-    rows: Array.from({ length: 8 }, (_, i) => ({
-      rowNo: i + 1,
-      question: `Organic chemistry row ${i + 1}: IUPAC name of...`,
-      subject: "Chemistry",
-      status: "valid" as const,
-    })),
-  },
-  {
-    id: "job-2039",
-    fileName: "maths-calc.csv",
-    uploadedAt: isoOffset(3),
-    status: "Failed",
-    total: 0,
-    valid: 0,
-    invalid: 0,
-    duplicates: 0,
-    rows: [],
-  },
+  makeJob({ id: "job-2041", fileName: "physics-bulk-nov.csv", uploadedAt: isoOffset(0), uploadedBy: "Priya S.", status: "Review", subj: "Physics", count: 24 }),
+  makeJob({ id: "job-2040", fileName: "chem-organic.xlsx", uploadedAt: isoOffset(1), uploadedBy: "Rahul V.", status: "Published", subj: "Chemistry", count: 18 }),
+  makeJob({ id: "job-2039", fileName: "maths-calc.csv", uploadedAt: isoOffset(3), uploadedBy: "Anjali", status: "Failed", subj: "Maths", count: 0 }),
+  makeJob({ id: "job-2038", fileName: "bio-genetics.csv", uploadedAt: isoOffset(5), uploadedBy: "Priya S.", status: "Approved", subj: "Biology", count: 16 }),
 ];
 
 export const recentActivity: ActivityItem[] = [
