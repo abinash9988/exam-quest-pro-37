@@ -1,12 +1,13 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
-import { LayoutDashboard, FileText, Upload, Menu, X, Plus, Search, ChevronRight } from "lucide-react";
+import { LayoutDashboard, FileText, Upload, Menu, X, Plus, Search, ChevronRight, History } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const nav: { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/questions", label: "Questions", icon: FileText },
-  { to: "/admin/import", label: "Import", icon: Upload },
+  { to: "/admin/import", label: "Import", icon: Upload, exact: true },
+  { to: "/admin/import/history", label: "Import history", icon: History },
 ];
 
 export function AdminShell() {

@@ -20,6 +20,7 @@ import { Route as ExamExamIdRouteImport } from './routes/exam/$examId'
 import { Route as AdminQuestionsIndexRouteImport } from './routes/admin/questions/index'
 import { Route as AdminImportIndexRouteImport } from './routes/admin/import/index'
 import { Route as AdminQuestionsCreateRouteImport } from './routes/admin/questions/create'
+import { Route as AdminImportHistoryRouteImport } from './routes/admin/import/history'
 import { Route as AdminQuestionsEditIdRouteImport } from './routes/admin/questions/edit.$id'
 import { Route as AdminImportReviewJobIdRouteImport } from './routes/admin/import/review.$jobId'
 
@@ -78,6 +79,11 @@ const AdminQuestionsCreateRoute = AdminQuestionsCreateRouteImport.update({
   path: '/questions/create',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminImportHistoryRoute = AdminImportHistoryRouteImport.update({
+  id: '/import/history',
+  path: '/import/history',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminQuestionsEditIdRoute = AdminQuestionsEditIdRouteImport.update({
   id: '/questions/edit/$id',
   path: '/questions/edit/$id',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/result/$resultId': typeof ResultResultIdRoute
   '/admin/': typeof AdminIndexRoute
   '/mock-test/': typeof MockTestIndexRoute
+  '/admin/import/history': typeof AdminImportHistoryRoute
   '/admin/questions/create': typeof AdminQuestionsCreateRoute
   '/admin/import/': typeof AdminImportIndexRoute
   '/admin/questions/': typeof AdminQuestionsIndexRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/result/$resultId': typeof ResultResultIdRoute
   '/admin': typeof AdminIndexRoute
   '/mock-test': typeof MockTestIndexRoute
+  '/admin/import/history': typeof AdminImportHistoryRoute
   '/admin/questions/create': typeof AdminQuestionsCreateRoute
   '/admin/import': typeof AdminImportIndexRoute
   '/admin/questions': typeof AdminQuestionsIndexRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/result/$resultId': typeof ResultResultIdRoute
   '/admin/': typeof AdminIndexRoute
   '/mock-test/': typeof MockTestIndexRoute
+  '/admin/import/history': typeof AdminImportHistoryRoute
   '/admin/questions/create': typeof AdminQuestionsCreateRoute
   '/admin/import/': typeof AdminImportIndexRoute
   '/admin/questions/': typeof AdminQuestionsIndexRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/result/$resultId'
     | '/admin/'
     | '/mock-test/'
+    | '/admin/import/history'
     | '/admin/questions/create'
     | '/admin/import/'
     | '/admin/questions/'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/result/$resultId'
     | '/admin'
     | '/mock-test'
+    | '/admin/import/history'
     | '/admin/questions/create'
     | '/admin/import'
     | '/admin/questions'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/result/$resultId'
     | '/admin/'
     | '/mock-test/'
+    | '/admin/import/history'
     | '/admin/questions/create'
     | '/admin/import/'
     | '/admin/questions/'
@@ -270,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminQuestionsCreateRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/import/history': {
+      id: '/admin/import/history'
+      path: '/import/history'
+      fullPath: '/admin/import/history'
+      preLoaderRoute: typeof AdminImportHistoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/questions/edit/$id': {
       id: '/admin/questions/edit/$id'
       path: '/questions/edit/$id'
@@ -289,6 +308,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminImportHistoryRoute: typeof AdminImportHistoryRoute
   AdminQuestionsCreateRoute: typeof AdminQuestionsCreateRoute
   AdminImportIndexRoute: typeof AdminImportIndexRoute
   AdminQuestionsIndexRoute: typeof AdminQuestionsIndexRoute
@@ -298,6 +318,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
+  AdminImportHistoryRoute: AdminImportHistoryRoute,
   AdminQuestionsCreateRoute: AdminQuestionsCreateRoute,
   AdminImportIndexRoute: AdminImportIndexRoute,
   AdminQuestionsIndexRoute: AdminQuestionsIndexRoute,
@@ -319,3 +340,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
