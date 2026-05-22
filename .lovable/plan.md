@@ -1,121 +1,74 @@
-# Admin Question Management CMS — Plan
+# Import Management Pipeline
 
-Building a scalable, mobile-first Admin CMS on top of the existing TanStack Start app (Next.js isn't used here — same React/TS/Tailwind stack, fully compatible with the spec). All data stays mock JSON. The existing `/admin` route will be restructured into a proper layout with nested routes.
+Build a full CSV/Excel question import workflow for the Admin CMS: **Upload → Parse → Review → Approve → Publish**, with a dedicated history view. All data stays mock/in-memory.
 
 ## Routes
 
-```
-src/routes/admin.tsx                          → layout (sidebar + header + Outlet)
-src/routes/admin/index.tsx                    → /admin (dashboard)
-src/routes/admin/questions/index.tsx          → /admin/questions (list)
-src/routes/admin/questions/create.tsx         → /admin/questions/create
-src/routes/admin/questions/edit.$id.tsx       → /admin/questions/edit/:id
-src/routes/admin/import/index.tsx             → /admin/import
-src/routes/admin/import/review.$jobId.tsx     → /admin/import/review/:jobId
-```
+- `/admin/import` — Upload page (rewrite existing)
+- `/admin/import/review/$jobId` — Editable review grid (rewrite existing)
+- `/admin/import/history` — Past import jobs (new)
 
-The current flat `admin.tsx` (with internal tab state) will be split into a true layout route + child routes so URLs are shareable and SSR-friendly.
+## Mock data additions (`src/lib/adminMock.ts`)
 
-## Mock data layer (`src/lib/adminMock.ts`)
+Extend `ImportJob` and `ImportRow`:
 
-TypeScript interfaces + seeded arrays:
-- `AdminQuestion` — id, examId, subject, chapter, topic, difficulty, type (`MCQ_SINGLE | MCQ_MULTI | INTEGER | TRUE_FALSE`), marks, negativeMarks, tags[], status (`Draft | Review | Approved | Published | Rejected | Archived`), question (rich HTML), options[{id, html, isCorrect, imageUrl?}], correctInteger?, explanation, imageUrl?, createdAt, updatedAt, author
-- `ImportJob` — id, fileName, uploadedAt, status, total, valid, invalid, duplicates, rows[]
-- `ActivityItem`, `RecentUpload`
-- Helpers: `getQuestion(id)`, `listQuestions(filters)`, `getImportJob(id)`
+- `ImportJob`: add `uploadedBy`, `status: "Uploaded" | "Parsing" | "Review" | "Approved" | "Published" | "Failed"`, `warnings`.
+- `ImportRow`: add editable fields — `chapter`, `difficulty`, `type`, `options[]`, `correctAnswer`, `explanation`, `errors: string[]`, `warnings: string[]`, `rowStatus: "pending" | "approved" | "rejected" | "published"`.
+- Seed 2–3 jobs with ~25 rows mixing valid/warning/invalid/duplicate cases.
+- Helpers: `createImportJob(file)`, `getJob(id)`, `updateRow(jobId, rowNo, patch)`, `bulkUpdateRows`, `approveRows`, `publishRows`, `rejectRows`.
 
-~30 seeded questions across JEE/NEET subjects with realistic chapters/topics.
+## 1. Upload page (`/admin/import`)
 
-## Shared admin components (`src/components/admin/`)
+- Hero card with dashed drag-and-drop zone, upload icon, "Drop CSV or Excel file", Browse button, and a **Download Template** split button (CSV / Excel — both trigger a mock blob download with sample headers).
+- Client-side validation: extension (`.csv`, `.xlsx`), size (≤10MB), single file.
+- Simulated upload progress bar (setInterval) → on completion show **Import Summary card**: total / valid / invalid / warnings / duplicates, with "Review Now" CTA → navigates to `/admin/import/review/$jobId`.
+- Sidebar quick-links to History and recent 3 jobs.
 
-- `AdminLayout` — sidebar (drawer on mobile via Sheet), sticky header, breadcrumbs
-- `StatCard`, `SectionCard`
-- `DataTable` — generic, with column defs, row selection, bulk-action bar, sort, pagination
-- `FilterBar` — collapsible on mobile; chips for active filters
-- `StatusBadge` — color-coded per status
-- `RichTextEditor` — toolbar (bold/italic/lists/tables/formula/image), `contentEditable` div, drag-and-drop image dropzone (mock — converts to object URL), formula insert dialog (LaTeX-ish string wrapped in `<code class="formula">`)
-- `OptionEditor` — dynamic add/remove, correct-answer toggle (radio for SINGLE, checkbox for MULTI), per-option image upload
-- `QuestionPreviewCard` — renders question exactly like the student exam UI
-- `DevicePreviewFrame` — toggle mobile (375px) ↔ desktop, wraps preview in a framed viewport
-- `AutoSaveIndicator` — "Saved 2s ago" with debounced save simulation
-- `StickyActionBar` — Save Draft / Submit Review / Publish (sticky bottom on mobile, sticky right on desktop)
-- `DuplicateWarning` — banner shown when question text matches existing
+## 2. Review grid (`/admin/import/review/$jobId`) — primary surface
 
-## Page-by-page
+Airtable/Notion-style editable spreadsheet:
 
-### 1. `/admin` Dashboard
-- 4 stat cards: Total / Draft / Published / Import Jobs (counts from mock)
-- Recent uploads table (last 5 import jobs, click → review)
-- Recent activity feed
-- Quick actions: "New Question", "Import CSV"
+- **Sticky toolbar**: search input, filter chips (Status, Subject, Difficulty, Errors-only), bulk-action menu, "Publish Selected" primary button, row counter.
+- **Sticky-header table** with resizable columns (mouse-drag handles via simple `useRef` width state):
+  Checkbox · Row# · Question · Subject · Chapter · Difficulty · Type · Status · Errors · Actions.
+- **Inline editing**: click cell → input/select swaps in; Enter/blur commits via `updateRow`. Selects for Subject/Difficulty/Type pull from existing mock lists.
+- **Status pill colors** via existing tokens: green (valid/approved), amber (warning), red (invalid), blue (published).
+- **Row actions** (icon buttons): Preview (opens modal), Approve, Reject, Edit (expands row to full editor drawer).
+- **Bulk actions** on selected rows: Approve · Reject · Publish · Delete · Change Difficulty · Change Subject (last two open small popovers).
+- **Pagination**: 25/50/100 per page, page nav at bottom.
+- **Validation engine** (`validateRow` in mockData): checks missing question/subject/chapter, invalid difficulty, missing options for MCQ, missing correct answer, duplicate hash of question text. Re-runs on each edit and recolors status.
+- **Preview modal**: reuses existing `QuestionPreviewCard` + `DevicePreviewFrame` (mobile/desktop toggle), renders mock formula/image placeholders.
 
-### 2. `/admin/questions` List
-- Search input (debounced, filters on question text + tags)
-- Filter drawer: Subject, Chapter (cascading), Topic, Difficulty, Type, Status
-- Sort dropdown: Newest / Oldest / Most edited / Difficulty
-- `DataTable` columns: checkbox, ID, Question (truncated), Subject, Type, Difficulty, Status badge, Updated, Actions (quick-edit, publish, archive)
-- Bulk action bar appears when rows selected: Publish, Archive, Delete, Change status
-- Pagination (10/25/50 per page)
-- Mobile: collapses to stacked cards instead of table
+## 3. History page (`/admin/import/history`)
 
-### 3. `/admin/questions/create` ★ Hero page
-Two-column layout (stacks on mobile, tabs to switch Editor ↔ Preview):
+- Stat cards: Total Jobs, Rows Imported, Rows Failed, Last Upload.
+- Table: File · Uploaded By · Uploaded At · Total · Valid · Invalid · Status pill · Actions (Open Review, Download Original mock, Delete).
+- Filter by status + search by filename.
 
-**Left — Editor**
-- Metadata form (collapsible): Exam, Subject, Chapter, Topic, Difficulty, Type, Marks, Negative Marks, Tags (chip input)
-- Question rich text editor with full toolbar + image dropzone
-- Conditional answer area based on `type`:
-  - MCQ_SINGLE/MULTI → `OptionEditor`
-  - INTEGER → numeric input for correct value + range
-  - TRUE_FALSE → two fixed options
-- Explanation rich text editor (with formula + image)
-- Duplicate warning banner if question matches existing mock entry
-- Validation messages inline per field
+## 4. Shared components (`src/components/admin/`)
 
-**Right — Live Preview**
-- `DevicePreviewFrame` with mobile/desktop toggle
-- Renders `QuestionPreviewCard` updated on every keystroke (controlled state)
-- Shows exam-style numbering, options, marks chip — matches the student exam UI
+- `ImportDropzone.tsx` — drag/drop + browse + progress.
+- `ImportSummaryCard.tsx` — post-upload stats with CTA.
+- `ReviewGrid.tsx` — the editable table (resize, inline edit, selection).
+- `ReviewToolbar.tsx` — search/filters/bulk menu.
+- `PreviewModal.tsx` — wraps existing preview components in a dialog.
+- `JobStatusBadge.tsx` — extends existing `StatusBadge` with import statuses.
+- Add "Import History" link to `AdminShell` sidebar.
 
-**Sticky action bar**
-- Save Draft, Submit Review, Publish (with confirm)
-- Auto-save indicator on the bar
+## Technical notes
 
-### 4. `/admin/questions/edit/:id`
-- Same component as create, preloaded from `getQuestion(id)` via route loader
-- 404 fallback (`notFoundComponent`) if id missing
-- Adds "Revision history" panel (mock list)
+- TanStack Router file routes; new file: `src/routes/admin/import/history.tsx`.
+- State: per-page `useReducer` for the grid (rows, selection, filters, edits). No Zustand yet; shape kept compatible.
+- No real CSV parsing — `createImportJob` synthesizes rows from a seeded template so uploads always "succeed".
+- Template downloads use `Blob` + `URL.createObjectURL` with hard-coded header strings; xlsx is a CSV-with-`.xlsx` stub (acceptable for mock).
+- All styling via existing OKLCH tokens, `shadow-card`, `gradient-card`. Mobile: grid collapses to horizontally-scrolling table inside a rounded card; toolbar becomes sticky bottom action bar with condensed bulk menu.
+- Reuse existing `QuestionPreviewCard`, `DevicePreviewFrame`, `StatusBadge`, `AdminShell`.
 
-### 5. `/admin/import`
-- Drag-and-drop CSV dropzone (mock parse)
-- Format help card with expected columns
-- List of past import jobs → each row links to review page
+## Build order
 
-### 6. `/admin/import/review/:jobId`
-- Summary stats: total / valid / invalid / duplicates
-- Tabs: All / Errors / Duplicates
-- Row-level table showing parsed question + validation status + inline fix
-- Bulk actions: Approve valid, Discard invalid, Publish all
-
-## State management
-
-Local component state + `useReducer` for the question editor (covers undo-ready shape). No Zustand needed yet but shape kept compatible. Mock auto-save uses `setTimeout` debounce.
-
-## Design tokens
-
-Reuses existing `--gradient-card`, `--shadow-card`, `--shadow-soft`, status colors (`--success`, `--warning`, `--review`, `--destructive`). No new global tokens needed; status badge palette added inline using existing tokens. Dark mode inherits automatically.
-
-## Out of scope (intentionally)
-
-- Real rich-text engine (Tiptap/Lexical) — uses lightweight `contentEditable` with mock toolbar; can be swapped later behind the `RichTextEditor` API
-- Real LaTeX rendering — formula stored as raw string, displayed in a styled `<code>` block
-- Backend persistence — all mutations update in-memory mock arrays for the session
-
-## File-creation order
-1. `src/lib/adminMock.ts` (types + data)
-2. `src/components/admin/*` shared components
-3. Rewrite `src/routes/admin.tsx` → layout
-4. Create child routes (dashboard, list, create, edit, import, import review)
-5. Verify build / preview at mobile + desktop breakpoints
-
-Ready to implement on approval.
+1. Extend `adminMock.ts` (types + helpers + seeds).
+2. Build shared components.
+3. Rewrite `/admin/import` (upload + summary).
+4. Rewrite `/admin/import/review/$jobId` (grid + modal + bulk).
+5. Create `/admin/import/history`.
+6. Wire sidebar link; verify at 360px and desktop.
