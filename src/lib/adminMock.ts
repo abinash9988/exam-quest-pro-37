@@ -241,3 +241,62 @@ export const emptyQuestion = (): AdminQuestion => ({
   updatedAt: new Date().toISOString(),
   author: "You",
 });
+
+// ===== Import helpers =====
+export function createImportJob(file: { name: string; size: number }): ImportJob {
+  const id = `job-${Date.now().toString().slice(-5)}`;
+  const subj = subjects[Math.floor(Math.random() * subjects.length)];
+  const count = 18 + Math.floor(Math.random() * 18);
+  const job = makeJob({
+    id, fileName: file.name, uploadedAt: new Date().toISOString(),
+    uploadedBy: "You", status: "Review", subj, count,
+  });
+  importJobs.unshift(job);
+  return job;
+}
+
+export function updateImportRow(jobId: string, rowNo: number, patch: Partial<ImportRow>) {
+  const job = importJobs.find((j) => j.id === jobId);
+  if (!job) return;
+  const row = job.rows.find((r) => r.rowNo === rowNo);
+  if (!row) return;
+  Object.assign(row, patch);
+  validateRow(row);
+  recountJob(job);
+}
+
+export function validateRow(r: ImportRow) {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  if (!r.question?.trim()) errors.push("Question text is required");
+  if (!r.subject?.trim()) errors.push("Subject is required");
+  if (!r.chapter?.trim()) warnings.push("Chapter is missing");
+  if (!(["Easy","Medium","Hard"] as Difficulty[]).includes(r.difficulty)) errors.push("Invalid difficulty");
+  if ((r.type === "MCQ_SINGLE" || r.type === "MCQ_MULTI") && !r.options.some((o) => o.isCorrect)) {
+    errors.push("No correct option marked");
+  }
+  if (!r.explanation?.trim()) warnings.push("Explanation is empty");
+  r.errors = errors;
+  r.warnings = warnings;
+  r.error = errors[0];
+  r.status = errors.length ? "invalid" : warnings.length ? "warning" : "valid";
+}
+
+function recountJob(job: ImportJob) {
+  job.total = job.rows.length;
+  job.valid = job.rows.filter((r) => r.status === "valid").length;
+  job.invalid = job.rows.filter((r) => r.status === "invalid").length;
+  job.duplicates = job.rows.filter((r) => r.status === "duplicate").length;
+  job.warnings = job.rows.filter((r) => r.status === "warning").length;
+}
+
+export function bulkUpdateRows(jobId: string, rowNos: number[], patch: Partial<ImportRow>) {
+  rowNos.forEach((n) => updateImportRow(jobId, n, patch));
+}
+
+export function deleteRows(jobId: string, rowNos: number[]) {
+  const job = importJobs.find((j) => j.id === jobId);
+  if (!job) return;
+  job.rows = job.rows.filter((r) => !rowNos.includes(r.rowNo));
+  recountJob(job);
+}
