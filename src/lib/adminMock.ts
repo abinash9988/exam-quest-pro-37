@@ -31,11 +31,29 @@ export interface AdminQuestion {
   author: string;
 }
 
+export type ImportJobStatus =
+  | "Uploaded" | "Parsing" | "Review" | "Approved" | "Published" | "Failed"
+  | "Processed" | "Processing";
+export type ImportRowStatus = "valid" | "invalid" | "duplicate" | "warning";
+export type ImportRowWorkflow = "pending" | "approved" | "rejected" | "published";
+
+export interface ImportRowOption { html: string; isCorrect: boolean }
+
 export interface ImportRow {
   rowNo: number;
   question: string;
   subject: string;
-  status: "valid" | "invalid" | "duplicate";
+  chapter: string;
+  difficulty: Difficulty;
+  type: QuestionType;
+  options: ImportRowOption[];
+  correctAnswer: string;
+  explanation: string;
+  status: ImportRowStatus;
+  workflow: ImportRowWorkflow;
+  errors: string[];
+  warnings: string[];
+  /** legacy single-error field */
   error?: string;
 }
 
@@ -43,11 +61,13 @@ export interface ImportJob {
   id: string;
   fileName: string;
   uploadedAt: string;
-  status: "Processed" | "Processing" | "Failed";
+  uploadedBy: string;
+  status: ImportJobStatus;
   total: number;
   valid: number;
   invalid: number;
   duplicates: number;
+  warnings: number;
   rows: ImportRow[];
 }
 
