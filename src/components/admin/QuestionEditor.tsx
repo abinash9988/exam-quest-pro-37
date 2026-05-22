@@ -6,10 +6,6 @@ import {
   type QuestionType,
   type Difficulty,
   type QuestionStatus,
-  exams,
-  subjects,
-  chaptersBySubject,
-  topicsByChapter,
   adminQuestions,
 } from "@/lib/adminMock";
 import { RichTextEditor } from "./RichTextEditor";
@@ -69,8 +65,6 @@ export function QuestionEditor({ initial, mode }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q.type]);
 
-  const chapters = chaptersBySubject[q.subject] ?? [];
-  const topics = topicsByChapter[q.chapter] ?? ["General"];
 
   const duplicate = useMemo(() => {
     const stripped = q.question.replace(/<[^>]+>/g, "").trim().toLowerCase();
@@ -152,16 +146,36 @@ export function QuestionEditor({ initial, mode }: Props) {
           <Section title="Metadata">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Exam">
-                <Select value={q.examId} onChange={(v) => set("examId", v)} options={exams} />
+                <input
+                  value={q.examId}
+                  onChange={(e) => set("examId", e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
+                  placeholder="e.g. JEE Mains"
+                />
               </Field>
               <Field label="Subject">
-                <Select value={q.subject} onChange={(v) => { set("subject", v); set("chapter", chaptersBySubject[v][0]); }} options={subjects} />
+                <input
+                  value={q.subject}
+                  onChange={(e) => set("subject", e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
+                  placeholder="e.g. Physics"
+                />
               </Field>
               <Field label="Chapter">
-                <Select value={q.chapter} onChange={(v) => { set("chapter", v); set("topic", (topicsByChapter[v] ?? ["General"])[0]); }} options={chapters} />
+                <input
+                  value={q.chapter}
+                  onChange={(e) => set("chapter", e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
+                  placeholder="e.g. Kinematics"
+                />
               </Field>
               <Field label="Topic">
-                <Select value={q.topic} onChange={(v) => set("topic", v)} options={topics} />
+                <input
+                  value={q.topic}
+                  onChange={(e) => set("topic", e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
+                  placeholder="e.g. 1D Motion"
+                />
               </Field>
               <Field label="Difficulty">
                 <Select value={q.difficulty} onChange={(v) => set("difficulty", v as Difficulty)} options={difficulties} />
