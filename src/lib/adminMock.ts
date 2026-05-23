@@ -78,6 +78,60 @@ export interface ActivityItem {
   at: string;
 }
 
+// ===== Versions / Moderation / Analytics / Tags =====
+export interface QuestionVersion {
+  id: string;
+  questionId: string;
+  version: number;
+  editedBy: string;
+  editedAt: string;
+  changeSummary: string;
+  snapshot: AdminQuestion;
+}
+
+export interface ModerationComment {
+  id: string;
+  questionId: string;
+  author: string;
+  role: "Reviewer" | "Editor" | "Admin";
+  message: string;
+  createdAt: string;
+  type: "note" | "approve" | "reject";
+}
+
+export interface WorkflowEvent {
+  id: string;
+  questionId: string;
+  from: QuestionStatus | null;
+  to: QuestionStatus;
+  actor: string;
+  at: string;
+  note?: string;
+}
+
+export interface QuestionAnalytics {
+  questionId: string;
+  attempts: number;
+  accuracy: number;
+  avgSolveSec: number;
+  skipRate: number;
+  difficultyRating: number;
+  last30Days: { date: string; attempts: number; accuracy: number }[];
+  optionDistribution: { label: string; pct: number }[];
+}
+
+export interface TagMeta { slug: string; label: string; color: string }
+export const tagCatalog: TagMeta[] = [
+  { slug: "formula-based", label: "Formula-based", color: "var(--review)" },
+  { slug: "conceptual",   label: "Conceptual",    color: "var(--success)" },
+  { slug: "numerical",    label: "Numerical",     color: "var(--primary)" },
+  { slug: "tricky",       label: "Tricky",        color: "var(--warning)" },
+  { slug: "important",    label: "Important",     color: "var(--destructive)" },
+];
+export function tagColor(slug: string): string {
+  return tagCatalog.find((t) => t.slug === slug)?.color ?? "var(--muted-foreground)";
+}
+
 export const exams = ["JEE Mains", "JEE Advanced", "NEET UG", "SSC CGL", "UPSC Prelims", "IBPS PO"];
 export const subjects = ["Physics", "Chemistry", "Maths", "Biology", "Reasoning", "GS"];
 export const chaptersBySubject: Record<string, string[]> = {
