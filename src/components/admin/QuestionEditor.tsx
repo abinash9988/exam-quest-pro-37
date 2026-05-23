@@ -1,20 +1,37 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { Save, Send, CheckCircle2, X, Plus, AlertTriangle, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   type AdminQuestion,
   type QuestionType,
   type Difficulty,
   type QuestionStatus,
-  adminQuestions,
+  getVersions,
+  pushVersion,
+  getModeration,
+  addModeration,
+  getWorkflow,
+  transitionStatus,
+  getAnalytics,
 } from "@/lib/adminMock";
+import { History, AlertTriangle, MessageSquare, BarChart3, Eye, Activity } from "lucide-react";
 import { RichTextEditor } from "./RichTextEditor";
 import { OptionEditor } from "./OptionEditor";
 import { QuestionPreviewCard } from "./QuestionPreviewCard";
 import { DevicePreviewFrame } from "./DevicePreviewFrame";
+import { TagInput } from "./TagInput";
+import { WorkflowBar } from "./WorkflowBar";
+import { WorkflowTimeline } from "./WorkflowTimeline";
+import { VersionHistoryPanel } from "./VersionHistoryPanel";
+import { DuplicateWarningPanel } from "./DuplicateWarningPanel";
+import { ModerationPanel } from "./ModerationPanel";
+import { AnalyticsPanel } from "./AnalyticsPanel";
+import { ExamChromeMock } from "./ExamChromeMock";
+import { useAutosave } from "@/hooks/useAutosave";
 
 const types: QuestionType[] = ["MCQ_SINGLE", "MCQ_MULTI", "INTEGER", "TRUE_FALSE"];
 const difficulties: Difficulty[] = ["Easy", "Medium", "Hard"];
+
+type Tab = "preview" | "versions" | "duplicates" | "moderation" | "analytics" | "workflow";
 
 interface Props {
   initial: AdminQuestion;
@@ -23,26 +40,16 @@ interface Props {
 
 export function QuestionEditor({ initial, mode }: Props) {
   const [q, setQ] = useState<AdminQuestion>(initial);
-  const [tagInput, setTagInput] = useState("");
-  const [tab, setTab] = useState<"editor" | "preview">("editor");
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const [tab, setTab] = useState<Tab>("preview");
   const [errors, setErrors] = useState<string[]>([]);
+  const [mobileView, setMobileView] = useState<"editor" | "side">("editor");
+  const [, force] = useState(0);
   const navigate = useNavigate();
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { status: saveStatus, lastSavedAt } = useAutosave(q.id, q);
 
-  // Auto-save simulation
-  useEffect(() => {
-    setSaveState("saving");
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setSaveState("saved"), 800);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [q]);
+  const set = <K extends keyof AdminQuestion>(k: K, v: AdminQuestion[K]) =>
+    setQ((s) => ({ ...s, [k]: v, updatedAt: new Date().toISOString() }));
 
-  const set = <K extends keyof AdminQuestion>(k: K, v: AdminQuestion[K]) => setQ((s) => ({ ...s, [k]: v }));
-
-  // Adjust options when type changes
   useEffect(() => {
     if (q.type === "TRUE_FALSE" && q.options.length !== 2) {
       setQ((s) => ({
@@ -65,13 +72,6 @@ export function QuestionEditor({ initial, mode }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q.type]);
 
-
-  const duplicate = useMemo(() => {
-    const stripped = q.question.replace(/<[^>]+>/g, "").trim().toLowerCase();
-    if (stripped.length < 10) return null;
-    return adminQuestions.find((x) => x.id !== q.id && x.question.replace(/<[^>]+>/g, "").trim().toLowerCase() === stripped);
-  }, [q.question, q.id]);
-
   const validate = (): string[] => {
     const e: string[] = [];
     if (!q.question.replace(/<[^>]+>/g, "").trim()) e.push("Question text is required");
@@ -85,128 +85,74 @@ export function QuestionEditor({ initial, mode }: Props) {
     return e;
   };
 
-  const submit = (status: QuestionStatus) => {
-    const e = validate();
-    setErrors(e);
-    if (e.length) return;
-    set("status", status);
-    setSaveState("saved");
-    setTimeout(() => navigate({ to: "/admin/questions" }), 400);
+  const transition = (to: QuestionStatus) => {
+    if (to !== "Draft" && to !== "Archived") {
+      const e = validate();
+      setErrors(e);
+      if (e.length) return;
+    }
+    transitionStatus(q.id, to, undefined, "You");
+    pushVersion(q, `Status → ${to}`);
+    setQ((s) => ({ ...s, status: to }));
+    if (to === "Published" || to === "Archived") {
+      setTimeout(() => navigate({ to: "/admin/questions" }), 400);
+    }
   };
 
-  const addTag = () => {
-    const t = tagInput.trim();
-    if (t && !q.tags.includes(t)) set("tags", [...q.tags, t]);
-    setTagInput("");
-  };
+  const versions = useMemo(() => getVersions(q.id), [q.id]);
+  const comments = useMemo(() => getModeration(q.id), [q.id]);
+  const events = useMemo(() => getWorkflow(q.id), [q.id]);
+  const analytics = useMemo(() => getAnalytics(q.id), [q.id]);
+
+  const tabs: { id: Tab; label: string; icon: typeof Eye; count?: number }[] = [
+    { id: "preview", label: "Preview", icon: Eye },
+    { id: "versions", label: "Versions", icon: History, count: versions.length },
+    { id: "duplicates", label: "Duplicates", icon: AlertTriangle },
+    { id: "moderation", label: "Review", icon: MessageSquare, count: comments.length },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "workflow", label: "Workflow", icon: Activity, count: events.length },
+  ];
 
   return (
     <div className="pb-28">
-      {/* Header */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight">{mode === "create" ? "Create Question" : `Edit ${q.id}`}</h1>
-          <p className="text-xs text-muted-foreground">Author rich content and preview the student experience live.</p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {saveState === "saving" && <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</>}
-          {saveState === "saved" && <><CheckCircle2 className="h-3.5 w-3.5 text-[var(--success)]" /> Saved</>}
+          <p className="text-xs text-muted-foreground">Workflow-driven authoring with versioning, moderation and analytics.</p>
         </div>
       </div>
 
-      {/* Mobile tabs */}
+      {/* Mobile tab switch */}
       <div className="mb-4 flex gap-1 rounded-xl border border-border bg-background p-1 text-sm lg:hidden">
-        <button onClick={() => setTab("editor")} className={`flex-1 rounded-lg py-1.5 font-semibold ${tab === "editor" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Editor</button>
-        <button onClick={() => setTab("preview")} className={`flex-1 rounded-lg py-1.5 font-semibold ${tab === "preview" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Preview</button>
+        <button onClick={() => setMobileView("editor")} className={`flex-1 rounded-lg py-1.5 font-semibold ${mobileView === "editor" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Editor</button>
+        <button onClick={() => setMobileView("side")} className={`flex-1 rounded-lg py-1.5 font-semibold ${mobileView === "side" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Tools</button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         {/* Editor */}
-        <div className={`space-y-4 ${tab === "preview" ? "hidden lg:block" : ""}`}>
-          {duplicate && (
-            <div className="flex items-start gap-2 rounded-xl border border-[var(--warning)] bg-[color-mix(in_oklab,var(--warning)_12%,transparent)] p-3 text-xs">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-[var(--warning)]" />
-              <div>
-                <div className="font-semibold">Possible duplicate</div>
-                <div className="text-muted-foreground">Matches existing question <span className="font-mono">{duplicate.id}</span>.</div>
-              </div>
-            </div>
-          )}
-
+        <div className={`space-y-4 ${mobileView === "side" ? "hidden lg:block" : ""}`}>
           {errors.length > 0 && (
             <div className="rounded-xl border border-[var(--destructive)] bg-[color-mix(in_oklab,var(--destructive)_10%,transparent)] p-3 text-xs">
-              <div className="mb-1 font-semibold text-[var(--destructive)]">Please fix:</div>
+              <div className="mb-1 font-semibold text-[var(--destructive)]">Please fix before transitioning:</div>
               <ul className="ml-4 list-disc text-[var(--destructive)]">
                 {errors.map((e) => <li key={e}>{e}</li>)}
               </ul>
             </div>
           )}
 
-          {/* Meta */}
           <Section title="Metadata">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Exam">
-                <input
-                  value={q.examId}
-                  onChange={(e) => set("examId", e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
-                  placeholder="e.g. JEE Mains"
-                />
-              </Field>
-              <Field label="Subject">
-                <input
-                  value={q.subject}
-                  onChange={(e) => set("subject", e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
-                  placeholder="e.g. Physics"
-                />
-              </Field>
-              <Field label="Chapter">
-                <input
-                  value={q.chapter}
-                  onChange={(e) => set("chapter", e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
-                  placeholder="e.g. Kinematics"
-                />
-              </Field>
-              <Field label="Topic">
-                <input
-                  value={q.topic}
-                  onChange={(e) => set("topic", e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
-                  placeholder="e.g. 1D Motion"
-                />
-              </Field>
-              <Field label="Difficulty">
-                <Select value={q.difficulty} onChange={(v) => set("difficulty", v as Difficulty)} options={difficulties} />
-              </Field>
-              <Field label="Type">
-                <Select value={q.type} onChange={(v) => set("type", v as QuestionType)} options={types} />
-              </Field>
-              <Field label="Marks">
-                <NumInput value={q.marks} onChange={(v) => set("marks", v)} />
-              </Field>
-              <Field label="Negative">
-                <NumInput value={q.negativeMarks} onChange={(v) => set("negativeMarks", v)} />
-              </Field>
-              <Field label="Tags">
-                <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-background px-2 py-1.5">
-                  {q.tags.map((t) => (
-                    <span key={t} className="flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
-                      {t}
-                      <button onClick={() => set("tags", q.tags.filter((x) => x !== t))}><X className="h-3 w-3" /></button>
-                    </span>
-                  ))}
-                  <input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                    placeholder="Add tag…"
-                    className="flex-1 min-w-[80px] bg-transparent text-xs outline-none"
-                  />
-                  <button onClick={addTag} className="text-muted-foreground"><Plus className="h-3.5 w-3.5" /></button>
-                </div>
-              </Field>
+              <Field label="Exam"><Input value={q.examId} onChange={(v) => set("examId", v)} placeholder="e.g. JEE Mains" /></Field>
+              <Field label="Subject"><Input value={q.subject} onChange={(v) => set("subject", v)} placeholder="e.g. Physics" /></Field>
+              <Field label="Chapter"><Input value={q.chapter} onChange={(v) => set("chapter", v)} placeholder="e.g. Kinematics" /></Field>
+              <Field label="Topic"><Input value={q.topic} onChange={(v) => set("topic", v)} placeholder="e.g. 1D Motion" /></Field>
+              <Field label="Difficulty"><Select value={q.difficulty} onChange={(v) => set("difficulty", v as Difficulty)} options={difficulties} /></Field>
+              <Field label="Type"><Select value={q.type} onChange={(v) => set("type", v as QuestionType)} options={types} /></Field>
+              <Field label="Marks"><NumInput value={q.marks} onChange={(v) => set("marks", v)} /></Field>
+              <Field label="Negative"><NumInput value={q.negativeMarks} onChange={(v) => set("negativeMarks", v)} /></Field>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <Field label="Tags"><TagInput tags={q.tags} onChange={(t) => set("tags", t)} /></Field>
+              </div>
             </div>
           </Section>
 
@@ -233,31 +179,76 @@ export function QuestionEditor({ initial, mode }: Props) {
           </Section>
         </div>
 
-        {/* Preview */}
-        <div className={`lg:sticky lg:top-20 lg:self-start ${tab === "editor" ? "hidden lg:block" : ""}`}>
-          <DevicePreviewFrame>
-            <QuestionPreviewCard q={q} />
-          </DevicePreviewFrame>
-        </div>
+        {/* Right rail */}
+        <aside className={`lg:sticky lg:top-20 lg:self-start ${mobileView === "editor" ? "hidden lg:block" : ""}`}>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-card p-1 text-[11px] shadow-[var(--shadow-card)]">
+              {tabs.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 font-semibold transition ${tab === t.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                  >
+                    <Icon className="h-3 w-3" />
+                    <span className="hidden sm:inline">{t.label}</span>
+                    {t.count !== undefined && <span className="ml-0.5 rounded-full bg-foreground/10 px-1 text-[9px]">{t.count}</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-3 shadow-[var(--shadow-card)]">
+              {tab === "preview" && (
+                <DevicePreviewFrame>
+                  <ExamChromeMock q={q} />
+                </DevicePreviewFrame>
+              )}
+              {tab === "versions" && (
+                <VersionHistoryPanel
+                  versions={versions}
+                  current={q}
+                  onRestore={(v) => {
+                    setQ({ ...v.snapshot, id: q.id, status: q.status });
+                    pushVersion({ ...v.snapshot, id: q.id }, `Restored v${v.version}`);
+                    force((n) => n + 1);
+                  }}
+                />
+              )}
+              {tab === "duplicates" && <DuplicateWarningPanel question={q} />}
+              {tab === "moderation" && (
+                <ModerationPanel
+                  comments={comments}
+                  onAdd={(c) => {
+                    addModeration(q.id, { ...c, author: "You", role: "Reviewer" });
+                    if (c.type === "approve") transition("Approved");
+                    else if (c.type === "reject") transition("Rejected");
+                    else force((n) => n + 1);
+                  }}
+                />
+              )}
+              {tab === "analytics" && <AnalyticsPanel a={analytics} />}
+              {tab === "workflow" && <WorkflowTimeline events={events} />}
+            </div>
+
+            <details className="rounded-2xl border border-border bg-card p-3 text-xs shadow-[var(--shadow-card)]">
+              <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Static card preview</summary>
+              <div className="mt-3">
+                <QuestionPreviewCard q={q} />
+              </div>
+            </details>
+          </div>
+        </aside>
       </div>
 
-      {/* Sticky actions */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 px-4 py-2.5 backdrop-blur-md md:left-64">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2">
-          <Link to="/admin/questions" className="text-xs font-semibold text-muted-foreground hover:text-foreground">Cancel</Link>
-          <div className="flex items-center gap-2">
-            <button onClick={() => submit("Draft")} className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-muted">
-              <Save className="h-3.5 w-3.5" /> Save Draft
-            </button>
-            <button onClick={() => submit("Review")} className="flex items-center gap-1.5 rounded-xl bg-[var(--review)] px-3 py-2 text-xs font-semibold text-white hover:opacity-90">
-              <Send className="h-3.5 w-3.5" /> Submit Review
-            </button>
-            <button onClick={() => submit("Published")} className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Publish
-            </button>
-          </div>
-        </div>
-      </div>
+      <WorkflowBar
+        status={q.status}
+        saveStatus={saveStatus}
+        lastSavedAt={lastSavedAt}
+        onTransition={transition}
+        onCancel={() => navigate({ to: "/admin/questions" })}
+      />
     </div>
   );
 }
@@ -270,7 +261,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   );
 }
-
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -279,26 +269,23 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
-
+function Input({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+      className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary" />
+  );
+}
 function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: readonly string[] }) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
-    >
+    <select value={value} onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary">
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
     </select>
   );
 }
-
 function NumInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
-    <input
-      type="number"
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary"
-    />
+    <input type="number" value={value} onChange={(e) => onChange(Number(e.target.value))}
+      className="w-full rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus:border-primary" />
   );
 }
