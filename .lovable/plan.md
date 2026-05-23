@@ -1,74 +1,79 @@
-# Import Management Pipeline
+# Admin CMS — Enterprise Workflow & Moderation Upgrade
 
-Build a full CSV/Excel question import workflow for the Admin CMS: **Upload → Parse → Review → Approve → Publish**, with a dedicated history view. All data stays mock/in-memory.
+Extend the existing Admin Question CMS (already at `/admin/*`) with workflow, versioning, duplicate detection, autosave, advanced search, tagging, analytics, multi-device preview, and moderation. Frontend-only, mock data, fully responsive.
 
-## Routes
+## 1. Mock data layer (`src/lib/adminMock.ts`)
 
-- `/admin/import` — Upload page (rewrite existing)
-- `/admin/import/review/$jobId` — Editable review grid (rewrite existing)
-- `/admin/import/history` — Past import jobs (new)
+Extend types and seed data — no breaking changes to existing fields.
 
-## Mock data additions (`src/lib/adminMock.ts`)
+- `QuestionVersion` — `{ id, questionId, version, editedBy, editedAt, changeSummary, snapshot: AdminQuestion }`
+- `ModerationComment` — `{ id, questionId, author, role, message, createdAt, type: "note" | "approve" | "reject" }`
+- `WorkflowEvent` — `{ id, questionId, from, to, actor, at, note? }`
+- `QuestionAnalytics` — `{ questionId, attempts, accuracy, avgSolveSec, skipRate, difficultyRating, last30Days: { date, attempts, accuracy }[], optionDistribution: { label, pct }[] }`
+- `TagMeta` — `{ slug, label, color }` for `formula-based | conceptual | numerical | tricky | important` (+ free-form).
+- Helpers: `getVersions(id)`, `restoreVersion(id, vId)`, `getAnalytics(id)`, `getModeration(id)`, `addModeration(...)`, `transitionStatus(id, to, note)`, `findDuplicates(q)` (token-overlap similarity → returns top 3 with `%`), `tagCatalog`.
 
-Extend `ImportJob` and `ImportRow`:
+## 2. Question editor enhancements (`src/components/admin/QuestionEditor.tsx`)
 
-- `ImportJob`: add `uploadedBy`, `status: "Uploaded" | "Parsing" | "Review" | "Approved" | "Published" | "Failed"`, `warnings`.
-- `ImportRow`: add editable fields — `chapter`, `difficulty`, `type`, `options[]`, `correctAnswer`, `explanation`, `errors: string[]`, `warnings: string[]`, `rowStatus: "pending" | "approved" | "rejected" | "published"`.
-- Seed 2–3 jobs with ~25 rows mixing valid/warning/invalid/duplicate cases.
-- Helpers: `createImportJob(file)`, `getJob(id)`, `updateRow(jobId, rowNo, patch)`, `bulkUpdateRows`, `approveRows`, `publishRows`, `rejectRows`.
+Refactor into a 3-column layout on desktop, stacked on mobile:
 
-## 1. Upload page (`/admin/import`)
+```text
+[ Main editor (existing) ] [ Right rail tabs ]
+[ Sticky workflow bar (bottom) ]
+```
 
-- Hero card with dashed drag-and-drop zone, upload icon, "Drop CSV or Excel file", Browse button, and a **Download Template** split button (CSV / Excel — both trigger a mock blob download with sample headers).
-- Client-side validation: extension (`.csv`, `.xlsx`), size (≤10MB), single file.
-- Simulated upload progress bar (setInterval) → on completion show **Import Summary card**: total / valid / invalid / warnings / duplicates, with "Review Now" CTA → navigates to `/admin/import/review/$jobId`.
-- Sidebar quick-links to History and recent 3 jobs.
+Right-rail tabs: **Versions · Duplicates · Moderation · Analytics**. Sticky workflow bar shows current status badge + transition buttons (Save Draft, Submit for Review, Approve, Reject, Publish, Archive) gated by current status.
 
-## 2. Review grid (`/admin/import/review/$jobId`) — primary surface
+New sub-components in `src/components/admin/`:
 
-Airtable/Notion-style editable spreadsheet:
+- `WorkflowBar.tsx` — status pill + allowed transition buttons + autosave indicator (`Saving… / Draft saved · 2s ago`).
+- `WorkflowTimeline.tsx` — vertical timeline of `WorkflowEvent[]`.
+- `VersionHistoryPanel.tsx` — list of versions with "View / Compare / Restore". Compare opens `VersionCompareModal`.
+- `VersionCompareModal.tsx` — side-by-side diff (question text, options, answer, explanation, tags) with simple line/field-level highlight.
+- `DuplicateWarningPanel.tsx` — warning cards with similarity %, opens `DuplicateCompareModal` (current vs candidate, highlight matching option text).
+- `ModerationPanel.tsx` — comment thread + Approve / Reject inline forms with note field.
+- `AnalyticsPanel.tsx` — stat cards (Attempts, Accuracy %, Avg Solve Time, Skip %, Difficulty Rating) + Recharts (line: 30-day attempts/accuracy, bar: option distribution, pie: correct vs incorrect vs skipped).
+- `TagInput.tsx` — colored pill input with autocomplete from `tagCatalog`, free-form add, X-to-remove, keyboard support.
+- `useAutosave.ts` (hook) — debounced 1.5s save to in-memory store; exposes `status: 'idle' | 'saving' | 'saved'` and `lastSavedAt`.
 
-- **Sticky toolbar**: search input, filter chips (Status, Subject, Difficulty, Errors-only), bulk-action menu, "Publish Selected" primary button, row counter.
-- **Sticky-header table** with resizable columns (mouse-drag handles via simple `useRef` width state):
-  Checkbox · Row# · Question · Subject · Chapter · Difficulty · Type · Status · Errors · Actions.
-- **Inline editing**: click cell → input/select swaps in; Enter/blur commits via `updateRow`. Selects for Subject/Difficulty/Type pull from existing mock lists.
-- **Status pill colors** via existing tokens: green (valid/approved), amber (warning), red (invalid), blue (published).
-- **Row actions** (icon buttons): Preview (opens modal), Approve, Reject, Edit (expands row to full editor drawer).
-- **Bulk actions** on selected rows: Approve · Reject · Publish · Delete · Change Difficulty · Change Subject (last two open small popovers).
-- **Pagination**: 25/50/100 per page, page nav at bottom.
-- **Validation engine** (`validateRow` in mockData): checks missing question/subject/chapter, invalid difficulty, missing options for MCQ, missing correct answer, duplicate hash of question text. Re-runs on each edit and recolors status.
-- **Preview modal**: reuses existing `QuestionPreviewCard` + `DevicePreviewFrame` (mobile/desktop toggle), renders mock formula/image placeholders.
+## 3. Question list enhancements (`src/routes/admin/questions/index.tsx`)
 
-## 3. History page (`/admin/import/history`)
+- New `AdvancedFilters.tsx` drawer: subject, chapter, topic, tags (multi), status, difficulty, type, created date range, updated date range, sort.
+- Active filter chips above the table with one-click clear.
+- Tag column rendering colored pills.
+- Row actions: quick status transition menu.
 
-- Stat cards: Total Jobs, Rows Imported, Rows Failed, Last Upload.
-- Table: File · Uploaded By · Uploaded At · Total · Valid · Invalid · Status pill · Actions (Open Review, Download Original mock, Delete).
-- Filter by status + search by filename.
+## 4. Preview enhancements (`src/components/admin/PreviewModal.tsx` + `DevicePreviewFrame.tsx`)
 
-## 4. Shared components (`src/components/admin/`)
+- Device switcher: **Mobile / Tablet / Desktop** with realistic frame sizes.
+- Render full exam card mock: question + options + palette (1-of-N) + timer (mm:ss countdown) + bottom nav, reusing `QuestionPreviewCard` plus new `ExamChromeMock.tsx`.
 
-- `ImportDropzone.tsx` — drag/drop + browse + progress.
-- `ImportSummaryCard.tsx` — post-upload stats with CTA.
-- `ReviewGrid.tsx` — the editable table (resize, inline edit, selection).
-- `ReviewToolbar.tsx` — search/filters/bulk menu.
-- `PreviewModal.tsx` — wraps existing preview components in a dialog.
-- `JobStatusBadge.tsx` — extends existing `StatusBadge` with import statuses.
-- Add "Import History" link to `AdminShell` sidebar.
+## 5. Routing
+
+No new routes needed — all features live inside existing editor + list pages. Add a tab anchor (`?tab=versions|duplicates|moderation|analytics`) so deep-links work.
+
+## 6. Responsive
+
+- Right rail collapses to a bottom tab sheet on `<lg`.
+- Workflow bar becomes sticky bottom action bar on mobile.
+- Tables: existing card fallback pattern preserved; advanced filters open as drawer on mobile.
+- `AdminShell` sidebar already collapsible — verify behavior, no changes expected.
 
 ## Technical notes
 
-- TanStack Router file routes; new file: `src/routes/admin/import/history.tsx`.
-- State: per-page `useReducer` for the grid (rows, selection, filters, edits). No Zustand yet; shape kept compatible.
-- No real CSV parsing — `createImportJob` synthesizes rows from a seeded template so uploads always "succeed".
-- Template downloads use `Blob` + `URL.createObjectURL` with hard-coded header strings; xlsx is a CSV-with-`.xlsx` stub (acceptable for mock).
-- All styling via existing OKLCH tokens, `shadow-card`, `gradient-card`. Mobile: grid collapses to horizontally-scrolling table inside a rounded card; toolbar becomes sticky bottom action bar with condensed bulk menu.
-- Reuse existing `QuestionPreviewCard`, `DevicePreviewFrame`, `StatusBadge`, `AdminShell`.
+- All status/tag colors via existing OKLCH tokens in `src/styles.css`; add `--tag-formula`, `--tag-conceptual`, `--tag-numerical`, `--tag-tricky`, `--tag-important` if needed.
+- Charts via `recharts` (already in `src/components/ui/chart.tsx`).
+- Diff: simple field-by-field comparison; for question/explanation strings, split by sentence and mark added/removed — no external diff lib.
+- Similarity: Jaccard on lowercased word tokens of question stem; ≥60% flagged.
+- Autosave writes to a module-level `Map` keyed by question id (mock); does not persist across reload — that's fine for mock.
+- No backend, no new packages required.
 
 ## Build order
 
-1. Extend `adminMock.ts` (types + helpers + seeds).
-2. Build shared components.
-3. Rewrite `/admin/import` (upload + summary).
-4. Rewrite `/admin/import/review/$jobId` (grid + modal + bulk).
-5. Create `/admin/import/history`.
-6. Wire sidebar link; verify at 360px and desktop.
+1. Extend `adminMock.ts` (types, seeds, helpers).
+2. Build shared panels + hook (`useAutosave`, `TagInput`, `WorkflowBar`, `WorkflowTimeline`).
+3. Build versioning + duplicate + moderation + analytics panels.
+4. Refactor `QuestionEditor` into 3-column layout with right-rail tabs and sticky workflow bar.
+5. Enhance list page filters + tag column.
+6. Upgrade `PreviewModal` with device switcher + exam chrome.
+7. Responsive QA at 375 / 768 / 1280.

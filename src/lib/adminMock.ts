@@ -78,6 +78,60 @@ export interface ActivityItem {
   at: string;
 }
 
+// ===== Versions / Moderation / Analytics / Tags =====
+export interface QuestionVersion {
+  id: string;
+  questionId: string;
+  version: number;
+  editedBy: string;
+  editedAt: string;
+  changeSummary: string;
+  snapshot: AdminQuestion;
+}
+
+export interface ModerationComment {
+  id: string;
+  questionId: string;
+  author: string;
+  role: "Reviewer" | "Editor" | "Admin";
+  message: string;
+  createdAt: string;
+  type: "note" | "approve" | "reject";
+}
+
+export interface WorkflowEvent {
+  id: string;
+  questionId: string;
+  from: QuestionStatus | null;
+  to: QuestionStatus;
+  actor: string;
+  at: string;
+  note?: string;
+}
+
+export interface QuestionAnalytics {
+  questionId: string;
+  attempts: number;
+  accuracy: number;
+  avgSolveSec: number;
+  skipRate: number;
+  difficultyRating: number;
+  last30Days: { date: string; attempts: number; accuracy: number }[];
+  optionDistribution: { label: string; pct: number }[];
+}
+
+export interface TagMeta { slug: string; label: string; color: string }
+export const tagCatalog: TagMeta[] = [
+  { slug: "formula-based", label: "Formula-based", color: "var(--review)" },
+  { slug: "conceptual",   label: "Conceptual",    color: "var(--success)" },
+  { slug: "numerical",    label: "Numerical",     color: "var(--primary)" },
+  { slug: "tricky",       label: "Tricky",        color: "var(--warning)" },
+  { slug: "important",    label: "Important",     color: "var(--destructive)" },
+];
+export function tagColor(slug: string): string {
+  return tagCatalog.find((t) => t.slug === slug)?.color ?? "var(--muted-foreground)";
+}
+
 export const exams = ["JEE Mains", "JEE Advanced", "NEET UG", "SSC CGL", "UPSC Prelims", "IBPS PO"];
 export const subjects = ["Physics", "Chemistry", "Maths", "Biology", "Reasoning", "GS"];
 export const chaptersBySubject: Record<string, string[]> = {
@@ -300,3 +354,148 @@ export function deleteRows(jobId: string, rowNos: number[]) {
   job.rows = job.rows.filter((r) => !rowNos.includes(r.rowNo));
   recountJob(job);
 }
+
+// ===== Versions / Moderation / Workflow / Analytics helpers =====
+const versionsStore = new Map<string, QuestionVersion[]>();
+const moderationStore = new Map<string, ModerationComment[]>();
+const workflowStore = new Map<string, WorkflowEvent[]>();
+const analyticsStore = new Map<string, QuestionAnalytics>();
+
+function seedVersions(q: AdminQuestion): QuestionVersion[] {
+  const authors = ["Priya S.", "Rahul V.", "Anjali", "You"];
+  const summaries = ["Created question", "Rephrased stem", "Fixed option C typo", "Updated explanation", "Added formula tag"];
+  return Array.from({ length: 3 }, (_, i) => ({
+    id: `${q.id}-v${i + 1}`,
+    questionId: q.id,
+    version: i + 1,
+    editedBy: authors[i % authors.length],
+    editedAt: new Date(Date.now() - (15 - i * 5) * 86400000).toISOString(),
+    changeSummary: summaries[i % summaries.length],
+    snapshot: {
+      ...q,
+      question: i === 2 ? q.question : q.question.replace(/v\s*=\s*3t/, `v = ${i + 2}t`),
+      explanation: i === 2 ? q.explanation : q.explanation.replace(/dv\/dt/, i === 0 ? "dv/dt (chain)" : "dv/dt"),
+    },
+  }));
+}
+function seedModeration(q: AdminQuestion): ModerationComment[] {
+  return [
+    { id: `${q.id}-m1`, questionId: q.id, author: "Anjali", role: "Reviewer", type: "note", createdAt: isoOffset(3), message: "Consider rewording the stem for clarity." },
+    { id: `${q.id}-m2`, questionId: q.id, author: "Rahul V.", role: "Editor", type: "approve", createdAt: isoOffset(1), message: "Looks good after the edit. Approved." },
+  ];
+}
+function seedWorkflow(q: AdminQuestion): WorkflowEvent[] {
+  return [
+    { id: `${q.id}-w1`, questionId: q.id, from: null, to: "Draft", actor: q.author, at: isoOffset(10), note: "Created" },
+    { id: `${q.id}-w2`, questionId: q.id, from: "Draft", to: "Review", actor: q.author, at: isoOffset(5), note: "Submitted for review" },
+    { id: `${q.id}-w3`, questionId: q.id, from: "Review", to: q.status, actor: "Anjali", at: isoOffset(1) },
+  ];
+}
+function seedAnalytics(q: AdminQuestion): QuestionAnalytics {
+  const seed = Number(q.id.replace(/\D/g, "")) || 1;
+  const r = (n: number) => ((Math.sin(seed * n) + 1) / 2);
+  const attempts = 800 + Math.floor(r(1) * 4000);
+  return {
+    questionId: q.id,
+    attempts,
+    accuracy: Math.round(40 + r(2) * 50),
+    avgSolveSec: Math.round(45 + r(3) * 120),
+    skipRate: Math.round(r(4) * 35),
+    difficultyRating: Math.round((2 + r(5) * 3) * 10) / 10,
+    last30Days: Array.from({ length: 30 }, (_, i) => ({
+      date: new Date(Date.now() - (29 - i) * 86400000).toISOString().slice(5, 10),
+      attempts: Math.round(attempts / 30 * (0.4 + r(i + 7) * 1.4)),
+      accuracy: Math.round(40 + r(i + 11) * 50),
+    })),
+    optionDistribution: (q.options.length ? q.options : [{ html: "A" }, { html: "B" }, { html: "C" }, { html: "D" }]).map((_, i) => ({
+      label: String.fromCharCode(65 + i),
+      pct: Math.round(15 + r(i + 13) * 50),
+    })),
+  };
+}
+
+export function getVersions(id: string): QuestionVersion[] {
+  if (!versionsStore.has(id)) {
+    const q = getQuestion(id);
+    if (q) versionsStore.set(id, seedVersions(q));
+  }
+  return versionsStore.get(id) ?? [];
+}
+export function pushVersion(q: AdminQuestion, changeSummary: string, editedBy = "You") {
+  const list = getVersions(q.id);
+  const v: QuestionVersion = {
+    id: `${q.id}-v${list.length + 1}`,
+    questionId: q.id,
+    version: list.length + 1,
+    editedBy,
+    editedAt: new Date().toISOString(),
+    changeSummary,
+    snapshot: { ...q },
+  };
+  versionsStore.set(q.id, [...list, v]);
+  return v;
+}
+export function getModeration(id: string): ModerationComment[] {
+  if (!moderationStore.has(id)) {
+    const q = getQuestion(id);
+    if (q) moderationStore.set(id, seedModeration(q));
+  }
+  return moderationStore.get(id) ?? [];
+}
+export function addModeration(id: string, c: Omit<ModerationComment, "id" | "questionId" | "createdAt">): ModerationComment {
+  const item: ModerationComment = { ...c, id: `${id}-m${Date.now()}`, questionId: id, createdAt: new Date().toISOString() };
+  moderationStore.set(id, [...getModeration(id), item]);
+  return item;
+}
+export function getWorkflow(id: string): WorkflowEvent[] {
+  if (!workflowStore.has(id)) {
+    const q = getQuestion(id);
+    if (q) workflowStore.set(id, seedWorkflow(q));
+  }
+  return workflowStore.get(id) ?? [];
+}
+export function transitionStatus(id: string, to: QuestionStatus, note?: string, actor = "You") {
+  const q = getQuestion(id);
+  const from = q?.status ?? null;
+  const ev: WorkflowEvent = { id: `${id}-w${Date.now()}`, questionId: id, from, to, actor, at: new Date().toISOString(), note };
+  workflowStore.set(id, [...getWorkflow(id), ev]);
+  if (q) q.status = to;
+  return ev;
+}
+export function getAnalytics(id: string): QuestionAnalytics {
+  if (!analyticsStore.has(id)) {
+    const q = getQuestion(id) ?? adminQuestions[0];
+    analyticsStore.set(id, seedAnalytics({ ...q, id }));
+  }
+  return analyticsStore.get(id)!;
+}
+
+// Jaccard similarity on word tokens
+function tokenize(s: string) {
+  return new Set(s.replace(/<[^>]+>/g, " ").toLowerCase().match(/[a-z0-9]+/g) ?? []);
+}
+export function findDuplicates(q: AdminQuestion, top = 3): { question: AdminQuestion; similarity: number }[] {
+  const a = tokenize(q.question);
+  if (a.size < 3) return [];
+  const scored = adminQuestions
+    .filter((x) => x.id !== q.id)
+    .map((x) => {
+      const b = tokenize(x.question);
+      const inter = [...a].filter((t) => b.has(t)).length;
+      const union = new Set([...a, ...b]).size;
+      return { question: x, similarity: union ? inter / union : 0 };
+    })
+    .filter((r) => r.similarity >= 0.35)
+    .sort((x, y) => y.similarity - x.similarity)
+    .slice(0, top);
+  return scored;
+}
+
+export const allowedTransitions: Record<QuestionStatus, QuestionStatus[]> = {
+  Draft:     ["Review", "Archived"],
+  Review:    ["Approved", "Rejected", "Draft"],
+  Approved:  ["Published", "Review", "Archived"],
+  Published: ["Archived", "Review"],
+  Rejected:  ["Draft", "Archived"],
+  Archived:  ["Draft"],
+};
