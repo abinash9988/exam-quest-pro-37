@@ -1,79 +1,84 @@
-# Admin CMS — Enterprise Workflow & Moderation Upgrade
+# Premium Student Dashboard Plan
 
-Extend the existing Admin Question CMS (already at `/admin/*`) with workflow, versioning, duplicate detection, autosave, advanced search, tagging, analytics, multi-device preview, and moderation. Frontend-only, mock data, fully responsive.
+Build a modern edtech Student Dashboard ecosystem under `/dashboard/*` with 5 routes, reusable widgets, dark-gradient aesthetic, and mock JSON data. Replaces the current basic `/dashboard` route.
 
-## 1. Mock data layer (`src/lib/adminMock.ts`)
+## Routes (TanStack Start file-based)
 
-Extend types and seed data — no breaking changes to existing fields.
-
-- `QuestionVersion` — `{ id, questionId, version, editedBy, editedAt, changeSummary, snapshot: AdminQuestion }`
-- `ModerationComment` — `{ id, questionId, author, role, message, createdAt, type: "note" | "approve" | "reject" }`
-- `WorkflowEvent` — `{ id, questionId, from, to, actor, at, note? }`
-- `QuestionAnalytics` — `{ questionId, attempts, accuracy, avgSolveSec, skipRate, difficultyRating, last30Days: { date, attempts, accuracy }[], optionDistribution: { label, pct }[] }`
-- `TagMeta` — `{ slug, label, color }` for `formula-based | conceptual | numerical | tricky | important` (+ free-form).
-- Helpers: `getVersions(id)`, `restoreVersion(id, vId)`, `getAnalytics(id)`, `getModeration(id)`, `addModeration(...)`, `transitionStatus(id, to, note)`, `findDuplicates(q)` (token-overlap similarity → returns top 3 with `%`), `tagCatalog`.
-
-## 2. Question editor enhancements (`src/components/admin/QuestionEditor.tsx`)
-
-Refactor into a 3-column layout on desktop, stacked on mobile:
-
-```text
-[ Main editor (existing) ] [ Right rail tabs ]
-[ Sticky workflow bar (bottom) ]
+```
+src/routes/dashboard.tsx                  → layout (Outlet + DashboardShell + BottomNavigation)
+src/routes/dashboard/index.tsx            → main dashboard
+src/routes/dashboard/profile.tsx          → profile page
+src/routes/dashboard/mock-tests.tsx       → unlocked tests, resume, reattempt
+src/routes/dashboard/purchases.tsx        → purchase + payment history
+src/routes/dashboard/subscriptions.tsx    → active plans + upgrade cards
 ```
 
-Right-rail tabs: **Versions · Duplicates · Moderation · Analytics**. Sticky workflow bar shows current status badge + transition buttons (Save Draft, Submit for Review, Approve, Reject, Publish, Archive) gated by current status.
+Each route gets its own `head()` with distinct title/description/og meta.
 
-New sub-components in `src/components/admin/`:
+## Mock Data (`src/lib/studentMock.ts`)
 
-- `WorkflowBar.tsx` — status pill + allowed transition buttons + autosave indicator (`Saving… / Draft saved · 2s ago`).
-- `WorkflowTimeline.tsx` — vertical timeline of `WorkflowEvent[]`.
-- `VersionHistoryPanel.tsx` — list of versions with "View / Compare / Restore". Compare opens `VersionCompareModal`.
-- `VersionCompareModal.tsx` — side-by-side diff (question text, options, answer, explanation, tags) with simple line/field-level highlight.
-- `DuplicateWarningPanel.tsx` — warning cards with similarity %, opens `DuplicateCompareModal` (current vs candidate, highlight matching option text).
-- `ModerationPanel.tsx` — comment thread + Approve / Reject inline forms with note field.
-- `AnalyticsPanel.tsx` — stat cards (Attempts, Accuracy %, Avg Solve Time, Skip %, Difficulty Rating) + Recharts (line: 30-day attempts/accuracy, bar: option distribution, pie: correct vs incorrect vs skipped).
-- `TagInput.tsx` — colored pill input with autocomplete from `tagCatalog`, free-form add, X-to-remove, keyboard support.
-- `useAutosave.ts` (hook) — debounced 1.5s save to in-memory store; exposes `status: 'idle' | 'saving' | 'saved'` and `lastSavedAt`.
+Single source of truth. Generic-by-category (no hardcoded JEE/NEET logic — driven by a `categories` array):
 
-## 3. Question list enhancements (`src/routes/admin/questions/index.tsx`)
+- `Student` — name, email, mobile, avatar, joinedAt, preferredCategoryId, streakDays, goldenBadges, loginMethods[]
+- `Category` — id, name, slug, icon, gradient (e.g. JEE, NEET, SSC, Banking, UPSC as seed data only)
+- `UnlockedTest` — id, name, categoryId, difficulty, validUntil, status (`not-started`|`in-progress`|`completed`), progressPct, attemptsLeft
+- `Purchase` — id, item, type (`test`|`subscription`), categoryId, amount, paidAt, method, status (`active`|`expired`|`refunded`)
+- `Subscription` — id, categoryId, planName, startedAt, expiresAt, benefits[], status
+- `Plan` (upgrade cards) — id, name, price, features[], highlight
+- `DashboardStats` — activeTests, avgScore, accuracy, totalAttempts, communityPosts, rankPercentile
+- Helpers: `daysRemaining(date)`, `getCategoryById(id)`
 
-- New `AdvancedFilters.tsx` drawer: subject, chapter, topic, tags (multi), status, difficulty, type, created date range, updated date range, sort.
-- Active filter chips above the table with one-click clear.
-- Tag column rendering colored pills.
-- Row actions: quick status transition menu.
+## Reusable Components (`src/components/student/`)
 
-## 4. Preview enhancements (`src/components/admin/PreviewModal.tsx` + `DevicePreviewFrame.tsx`)
+- `DashboardShell.tsx` — sticky top bar (logo, search, theme toggle, avatar), responsive container, bottom padding for mobile nav
+- `BottomNavigation.tsx` — mobile-only (md:hidden), 5 tabs: Home, Mock Tests, Community, Results, Profile. Active-state highlight.
+- `DashboardHero.tsx` — gradient bg + animated glow blobs (CSS), glass card overlay; greeting based on time-of-day, name, preferred category chip, streak + badge widgets, active subscription pill
+- `StreakWidget.tsx` — 🔥 + count, gradient ring
+- `BadgeWidget.tsx` — 🏅 + count
+- `CountdownBadge.tsx` — pill showing "Xd left" / "Expires today" / "Expired", color-coded
+- `StatsCard.tsx` — icon, label, value, delta, tone variant (primary/success/warning/review)
+- `MockTestCard.tsx` — name, category chip, difficulty, validity countdown, primary CTA (Continue / Start / Reattempt based on status), progress bar
+- `PurchaseCard.tsx` — item, amount, paidAt, method, status badge, category chip
+- `SubscriptionCard.tsx` — plan name, category, benefits list, expiry countdown, manage button
+- `ProfileCard.tsx` — avatar, name, email/mobile, joined date, login methods (Email/Mobile/Google icons), preferred category, stat strip
+- `PlanCard.tsx` — upgrade plan tile with features + CTA (used on subscriptions page)
+- `SectionHeader.tsx` — title + optional "View all" link
 
-- Device switcher: **Mobile / Tablet / Desktop** with realistic frame sizes.
-- Render full exam card mock: question + options + palette (1-of-N) + timer (mm:ss countdown) + bottom nav, reusing `QuestionPreviewCard` plus new `ExamChromeMock.tsx`.
+## Page Composition
 
-## 5. Routing
+**`/dashboard`**
+1. `DashboardHero` (full width)
+2. 6 `StatsCard` grid: Active Tests, Avg Score, Accuracy, Total Attempts, Subscription Status, Community Activity
+3. "Active Mock Tests" section — horizontal scroll on mobile, grid on md+, `MockTestCard` x N
+4. Two-column (md+): Recent Purchases (compact list of `PurchaseCard`) + Active Subscriptions (compact `SubscriptionCard`)
+5. CTA banner: "Explore more categories"
 
-No new routes needed — all features live inside existing editor + list pages. Add a tab anchor (`?tab=versions|duplicates|moderation|analytics`) so deep-links work.
+**`/dashboard/profile`** — `ProfileCard` + tabs/sections: Login methods, Streak stats (with mini chart), Purchase count summary, Preferred category selector (mock).
 
-## 6. Responsive
+**`/dashboard/mock-tests`** — Filter chips (All / In Progress / Completed / Expiring soon), grid of `MockTestCard`. Empty state.
 
-- Right rail collapses to a bottom tab sheet on `<lg`.
-- Workflow bar becomes sticky bottom action bar on mobile.
-- Tables: existing card fallback pattern preserved; advanced filters open as drawer on mobile.
-- `AdminShell` sidebar already collapsible — verify behavior, no changes expected.
+**`/dashboard/purchases`** — Filter (All / Tests / Subscriptions / Active / Expired), payment history table on desktop, `PurchaseCard` list on mobile. Total spent summary tile.
 
-## Technical notes
+**`/dashboard/subscriptions`** — Active subscriptions grid + "Upgrade your plan" section with 3 `PlanCard` tiers.
 
-- All status/tag colors via existing OKLCH tokens in `src/styles.css`; add `--tag-formula`, `--tag-conceptual`, `--tag-numerical`, `--tag-tricky`, `--tag-important` if needed.
-- Charts via `recharts` (already in `src/components/ui/chart.tsx`).
-- Diff: simple field-by-field comparison; for question/explanation strings, split by sentence and mark added/removed — no external diff lib.
-- Similarity: Jaccard on lowercased word tokens of question stem; ≥60% flagged.
-- Autosave writes to a module-level `Map` keyed by question id (mock); does not persist across reload — that's fine for mock.
-- No backend, no new packages required.
+## Design System
 
-## Build order
+- Reuse existing OKLCH tokens in `src/styles.css` (primary, gradient-hero, success, warning, review, shadow-card, shadow-soft). No new color literals in components — use tokens.
+- Hero: `bg-[var(--gradient-hero)]` with absolutely-positioned blurred radial blobs animated via existing `animate-pulse` / new `animate-fade-in`.
+- Glassmorphism: `bg-card/60 backdrop-blur-md border border-white/10` over hero only — applied lightly elsewhere.
+- Dark mode: already supported via `ThemeToggle`; verify contrast on hero blobs.
+- Animations: `animate-fade-in`, `hover-scale`, `transition-transform` per existing utility set.
+- Mobile-first: stacked layouts, horizontal scroll lanes, sticky bottom nav with `pb-20 md:pb-8` on shells.
 
-1. Extend `adminMock.ts` (types, seeds, helpers).
-2. Build shared panels + hook (`useAutosave`, `TagInput`, `WorkflowBar`, `WorkflowTimeline`).
-3. Build versioning + duplicate + moderation + analytics panels.
-4. Refactor `QuestionEditor` into 3-column layout with right-rail tabs and sticky workflow bar.
-5. Enhance list page filters + tag column.
-6. Upgrade `PreviewModal` with device switcher + exam chrome.
-7. Responsive QA at 375 / 768 / 1280.
+## Integration Notes
+
+- Update `src/components/BottomNav.tsx` global nav: leave site-wide nav as-is; the dashboard uses its own `BottomNavigation` inside `DashboardShell` (hide global one on `/dashboard/*` via path check, or simply rely on dashboard shell's own bar — will hide global BottomNav on `/dashboard` paths to avoid duplication).
+- Navbar link to `/dashboard` already exists.
+- `routeTree.gen.ts` is auto-generated — do not edit.
+- No backend; all data from `studentMock.ts`. No new packages required (Recharts already installed for profile mini-chart).
+
+## Out of Scope
+
+- Real auth, real payments, real test-taking changes.
+- Editing existing `/admin`, `/exam`, `/mock-test`, `/result` routes.
+- Community page content (bottom-nav link can route to `/dashboard` placeholder or `#`).
