@@ -13,10 +13,15 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MockTestIndexRouteImport } from './routes/mock-test/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ResultResultIdRouteImport } from './routes/result/$resultId'
 import { Route as MockTestSlugRouteImport } from './routes/mock-test/$slug'
 import { Route as ExamExamIdRouteImport } from './routes/exam/$examId'
+import { Route as DashboardSubscriptionsRouteImport } from './routes/dashboard/subscriptions'
+import { Route as DashboardPurchasesRouteImport } from './routes/dashboard/purchases'
+import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
+import { Route as DashboardMockTestsRouteImport } from './routes/dashboard/mock-tests'
 import { Route as AdminQuestionsIndexRouteImport } from './routes/admin/questions/index'
 import { Route as AdminImportIndexRouteImport } from './routes/admin/import/index'
 import { Route as AdminQuestionsCreateRouteImport } from './routes/admin/questions/create'
@@ -44,6 +49,11 @@ const MockTestIndexRoute = MockTestIndexRouteImport.update({
   path: '/mock-test/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -63,6 +73,26 @@ const ExamExamIdRoute = ExamExamIdRouteImport.update({
   id: '/exam/$examId',
   path: '/exam/$examId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardSubscriptionsRoute = DashboardSubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardPurchasesRoute = DashboardPurchasesRouteImport.update({
+  id: '/purchases',
+  path: '/purchases',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardProfileRoute = DashboardProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardMockTestsRoute = DashboardMockTestsRouteImport.update({
+  id: '/mock-tests',
+  path: '/mock-tests',
+  getParentRoute: () => DashboardRoute,
 } as any)
 const AdminQuestionsIndexRoute = AdminQuestionsIndexRouteImport.update({
   id: '/questions/',
@@ -98,11 +128,16 @@ const AdminImportReviewJobIdRoute = AdminImportReviewJobIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard/mock-tests': typeof DashboardMockTestsRoute
+  '/dashboard/profile': typeof DashboardProfileRoute
+  '/dashboard/purchases': typeof DashboardPurchasesRoute
+  '/dashboard/subscriptions': typeof DashboardSubscriptionsRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
   '/mock-test/': typeof MockTestIndexRoute
   '/admin/import/history': typeof AdminImportHistoryRoute
   '/admin/questions/create': typeof AdminQuestionsCreateRoute
@@ -113,11 +148,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard/mock-tests': typeof DashboardMockTestsRoute
+  '/dashboard/profile': typeof DashboardProfileRoute
+  '/dashboard/purchases': typeof DashboardPurchasesRoute
+  '/dashboard/subscriptions': typeof DashboardSubscriptionsRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
   '/admin': typeof AdminIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
   '/mock-test': typeof MockTestIndexRoute
   '/admin/import/history': typeof AdminImportHistoryRoute
   '/admin/questions/create': typeof AdminQuestionsCreateRoute
@@ -130,11 +169,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard/mock-tests': typeof DashboardMockTestsRoute
+  '/dashboard/profile': typeof DashboardProfileRoute
+  '/dashboard/purchases': typeof DashboardPurchasesRoute
+  '/dashboard/subscriptions': typeof DashboardSubscriptionsRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
   '/mock-test/': typeof MockTestIndexRoute
   '/admin/import/history': typeof AdminImportHistoryRoute
   '/admin/questions/create': typeof AdminQuestionsCreateRoute
@@ -149,10 +193,15 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/dashboard/mock-tests'
+    | '/dashboard/profile'
+    | '/dashboard/purchases'
+    | '/dashboard/subscriptions'
     | '/exam/$examId'
     | '/mock-test/$slug'
     | '/result/$resultId'
     | '/admin/'
+    | '/dashboard/'
     | '/mock-test/'
     | '/admin/import/history'
     | '/admin/questions/create'
@@ -163,11 +212,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/dashboard'
+    | '/dashboard/mock-tests'
+    | '/dashboard/profile'
+    | '/dashboard/purchases'
+    | '/dashboard/subscriptions'
     | '/exam/$examId'
     | '/mock-test/$slug'
     | '/result/$resultId'
     | '/admin'
+    | '/dashboard'
     | '/mock-test'
     | '/admin/import/history'
     | '/admin/questions/create'
@@ -180,10 +233,15 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/dashboard/mock-tests'
+    | '/dashboard/profile'
+    | '/dashboard/purchases'
+    | '/dashboard/subscriptions'
     | '/exam/$examId'
     | '/mock-test/$slug'
     | '/result/$resultId'
     | '/admin/'
+    | '/dashboard/'
     | '/mock-test/'
     | '/admin/import/history'
     | '/admin/questions/create'
@@ -196,7 +254,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
-  DashboardRoute: typeof DashboardRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
   ExamExamIdRoute: typeof ExamExamIdRoute
   MockTestSlugRoute: typeof MockTestSlugRoute
   ResultResultIdRoute: typeof ResultResultIdRoute
@@ -233,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MockTestIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
@@ -260,6 +325,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/exam/$examId'
       preLoaderRoute: typeof ExamExamIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/subscriptions': {
+      id: '/dashboard/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/dashboard/subscriptions'
+      preLoaderRoute: typeof DashboardSubscriptionsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/purchases': {
+      id: '/dashboard/purchases'
+      path: '/purchases'
+      fullPath: '/dashboard/purchases'
+      preLoaderRoute: typeof DashboardPurchasesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/profile': {
+      id: '/dashboard/profile'
+      path: '/profile'
+      fullPath: '/dashboard/profile'
+      preLoaderRoute: typeof DashboardProfileRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/mock-tests': {
+      id: '/dashboard/mock-tests'
+      path: '/mock-tests'
+      fullPath: '/dashboard/mock-tests'
+      preLoaderRoute: typeof DashboardMockTestsRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/admin/questions/': {
       id: '/admin/questions/'
@@ -328,10 +421,30 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface DashboardRouteChildren {
+  DashboardMockTestsRoute: typeof DashboardMockTestsRoute
+  DashboardProfileRoute: typeof DashboardProfileRoute
+  DashboardPurchasesRoute: typeof DashboardPurchasesRoute
+  DashboardSubscriptionsRoute: typeof DashboardSubscriptionsRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardMockTestsRoute: DashboardMockTestsRoute,
+  DashboardProfileRoute: DashboardProfileRoute,
+  DashboardPurchasesRoute: DashboardPurchasesRoute,
+  DashboardSubscriptionsRoute: DashboardSubscriptionsRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
-  DashboardRoute: DashboardRoute,
+  DashboardRoute: DashboardRouteWithChildren,
   ExamExamIdRoute: ExamExamIdRoute,
   MockTestSlugRoute: MockTestSlugRoute,
   ResultResultIdRoute: ResultResultIdRoute,
