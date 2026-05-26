@@ -1,13 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, BookOpen, Users, BarChart3, User } from "lucide-react";
 
-const items: { to: string; label: string; icon: typeof Home; exact?: boolean }[] = [
+const items = [
   { to: "/dashboard", label: "Home", icon: Home, exact: true },
   { to: "/dashboard/mock-tests", label: "Tests", icon: BookOpen },
-  { to: "/dashboard/subscriptions", label: "Community", icon: Users },
-  { to: "/dashboard/purchases", label: "Results", icon: BarChart3 },
+  { to: "/dashboard/community", label: "Community", icon: Users },
+  { to: "/dashboard/results", label: "Results", icon: BarChart3 },
   { to: "/dashboard/profile", label: "Profile", icon: User },
-];
+] as const;
 
 export function BottomNavigation() {
   const path = useRouterState({ select: (r) => r.location.pathname });
