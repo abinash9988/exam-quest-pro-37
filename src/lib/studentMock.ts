@@ -182,3 +182,153 @@ export function daysRemaining(iso: string): number {
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
+
+// ============================================================
+// Phase 2 — Gamification, rewards, analytics & recommendations
+// ============================================================
+
+export const TEST_VALIDITY_DAYS = 15;
+export const BADGE_RULE = "Score ≥70% on a Medium or Hard test";
+
+export type TestColorStatus = "active" | "expiring" | "expired";
+
+export function getTestStatusColor(validUntil: string): TestColorStatus {
+  const d = daysRemaining(validUntil);
+  if (d < 0) return "expired";
+  if (d <= 3) return "expiring";
+  return "active";
+}
+
+export interface Reward {
+  id: string;
+  name: string;
+  icon: string;
+  threshold: number;
+  description: string;
+}
+
+export const REWARD_TIERS: Reward[] = [
+  { id: "r1", name: "Exclusive Sticker", icon: "🌟", threshold: 25, description: "Holographic MockArena sticker pack." },
+  { id: "r2", name: "Steel Water Bottle", icon: "💧", threshold: 50, description: "Branded vacuum-insulated bottle." },
+  { id: "r3", name: "Premium T-Shirt", icon: "👕", threshold: 75, description: "Limited-edition cotton tee." },
+  { id: "r4", name: "Study Table Lamp", icon: "💡", threshold: 100, description: "Eye-care LED lamp for late-night prep." },
+  { id: "r5", name: "Premium Backpack", icon: "🎒", threshold: 150, description: "Anti-theft laptop backpack." },
+];
+
+export function getNextReward(badges: number): Reward | null {
+  return REWARD_TIERS.find((r) => r.threshold > badges) ?? null;
+}
+
+export function getProgressToNextReward(badges: number) {
+  const next = getNextReward(badges);
+  if (!next) return { from: 150, to: 150, pct: 100, remaining: 0, next: null as Reward | null };
+  const prev = [...REWARD_TIERS].reverse().find((r) => r.threshold <= badges)?.threshold ?? 0;
+  const span = next.threshold - prev;
+  const done = badges - prev;
+  return { from: prev, to: next.threshold, pct: Math.round((done / span) * 100), remaining: next.threshold - badges, next };
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  type: "streak" | "badge" | "score" | "reward";
+  earnedAt: string;
+  detail: string;
+}
+
+export const achievements: Achievement[] = [
+  { id: "a1", title: "17-day streak unlocked", type: "streak", earnedAt: daysAgo(0), detail: "Practiced every day this week." },
+  { id: "a2", title: "Crossed 40 Golden Badges", type: "badge", earnedAt: daysAgo(2), detail: "Top 6% of all aspirants." },
+  { id: "a3", title: "Score 92% in JEE Physics", type: "score", earnedAt: daysAgo(4), detail: "Personal best in Physics." },
+  { id: "a4", title: "Unlocked Sticker reward", type: "reward", earnedAt: daysAgo(8), detail: "Reached 25 badges milestone." },
+  { id: "a5", title: "First Hard test cracked", type: "score", earnedAt: daysAgo(14), detail: "JEE Mains Mock 02 · 78%." },
+];
+
+export interface ResultEntry {
+  id: string;
+  testName: string;
+  categoryId: string;
+  scorePct: number;
+  accuracy: number;
+  timeTakenMin: number;
+  attemptedAt: string;
+}
+
+export const results: ResultEntry[] = Array.from({ length: 10 }).map((_, i) => ({
+  id: `res-${i + 1}`,
+  testName: ["JEE Physics Sprint", "JEE Maths Daily", "NEET Biology Booster", "SSC CGL Tier 1", "UPSC Prelims GS"][i % 5],
+  categoryId: ["cat-jee", "cat-jee", "cat-neet", "cat-ssc", "cat-upsc"][i % 5],
+  scorePct: 55 + ((i * 7) % 38),
+  accuracy: 60 + ((i * 5) % 35),
+  timeTakenMin: 25 + ((i * 9) % 45),
+  attemptedAt: daysAgo(28 - i * 3),
+}));
+
+export interface SubjectStat {
+  subject: string;
+  attempts: number;
+  avgScore: number;
+  strength: "weak" | "average" | "strong";
+}
+
+export const subjectStats: SubjectStat[] = [
+  { subject: "Physics", attempts: 12, avgScore: 82, strength: "strong" },
+  { subject: "Chemistry", attempts: 9, avgScore: 71, strength: "average" },
+  { subject: "Maths", attempts: 14, avgScore: 88, strength: "strong" },
+  { subject: "Biology", attempts: 5, avgScore: 58, strength: "weak" },
+  { subject: "Reasoning", attempts: 7, avgScore: 64, strength: "average" },
+  { subject: "GK / Current", attempts: 4, avgScore: 49, strength: "weak" },
+];
+
+export const weeklyPerformance = [
+  { day: "Mon", score: 72 },
+  { day: "Tue", score: 78 },
+  { day: "Wed", score: 65 },
+  { day: "Thu", score: 84 },
+  { day: "Fri", score: 79 },
+  { day: "Sat", score: 88 },
+  { day: "Sun", score: 91 },
+];
+
+export interface Recommendation {
+  id: string;
+  type: "test" | "topic" | "challenge";
+  title: string;
+  categoryId: string;
+  reason: string;
+}
+
+export const recommendations: Recommendation[] = [
+  { id: "rc1", type: "topic", title: "Brush up: Modern Physics", categoryId: "cat-jee", reason: "Weak subject detected" },
+  { id: "rc2", type: "test", title: "NEET Biology · Cell Division", categoryId: "cat-neet", reason: "Based on recent attempts" },
+  { id: "rc3", type: "challenge", title: "7-Day Daily Quant Challenge", categoryId: "cat-ssc", reason: "Trending in your category" },
+  { id: "rc4", type: "test", title: "JEE Maths · Calculus Sprint", categoryId: "cat-jee", reason: "Boost your strong subject" },
+  { id: "rc5", type: "topic", title: "Current Affairs · Last 30 days", categoryId: "cat-upsc", reason: "Weak subject detected" },
+];
+
+export interface NotificationPrefs {
+  email: boolean;
+  push: boolean;
+  sms: boolean;
+  weeklyDigest: boolean;
+  streakReminders: boolean;
+  rewardAlerts: boolean;
+}
+
+export const defaultNotificationPrefs: NotificationPrefs = {
+  email: true,
+  push: true,
+  sms: false,
+  weeklyDigest: true,
+  streakReminders: true,
+  rewardAlerts: true,
+};
+
+export const streakCalendar = Array.from({ length: 14 }).map((_, i) => {
+  const date = new Date(Date.now() - (13 - i) * 86400000);
+  return {
+    date: date.toISOString(),
+    label: ["S", "M", "T", "W", "T", "F", "S"][date.getDay()],
+    active: i >= 14 - Math.min(student.streakDays, 14),
+  };
+});
