@@ -1,84 +1,126 @@
-# Premium Student Dashboard Plan
 
-Build a modern edtech Student Dashboard ecosystem under `/dashboard/*` with 5 routes, reusable widgets, dark-gradient aesthetic, and mock JSON data. Replaces the current basic `/dashboard` route.
+# Premium Student Dashboard — Phase 2 Plan
 
-## Routes (TanStack Start file-based)
+Build on the existing `/dashboard/*` ecosystem (already has Home, Profile, Mock Tests, Purchases, Subscriptions). Add the missing routes (Results, Rewards, Settings), a full gamification + reward layer, recommendations, and a category-personalization filter. Mock data only.
+
+## New & Updated Routes
 
 ```
-src/routes/dashboard.tsx                  → layout (Outlet + DashboardShell + BottomNavigation)
-src/routes/dashboard/index.tsx            → main dashboard
-src/routes/dashboard/profile.tsx          → profile page
-src/routes/dashboard/mock-tests.tsx       → unlocked tests, resume, reattempt
-src/routes/dashboard/purchases.tsx        → purchase + payment history
-src/routes/dashboard/subscriptions.tsx    → active plans + upgrade cards
+src/routes/dashboard/results.tsx       (NEW) analytics + charts
+src/routes/dashboard/rewards.tsx       (NEW) badge tiers + unlock timeline
+src/routes/dashboard/settings.tsx      (NEW) account/notification/privacy
+src/routes/dashboard/index.tsx         (UPDATE) add streak, badge, next-reward, recommendations, category filter
+src/routes/dashboard/mock-tests.tsx    (UPDATE) status colors (active/expiring/expired), reattempt rule, 15-day validity surface
+src/routes/dashboard/purchases.tsx     (UPDATE) SINGLE_TEST vs CATEGORY_SUBSCRIPTION badges, search input, pagination
+src/routes/dashboard/profile.tsx       (UPDATE) edit profile / change preferred exam / upload avatar (mock)
 ```
 
-Each route gets its own `head()` with distinct title/description/og meta.
+Each route gets its own `head()` with unique title/description/og.
 
-## Mock Data (`src/lib/studentMock.ts`)
+`DashboardShell` desktop nav + `BottomNavigation` mobile tabs updated to 5: **Home · Mock Tests · Community · Results · Profile**. Add a `/dashboard/community` placeholder route so the link resolves type-safely.
 
-Single source of truth. Generic-by-category (no hardcoded JEE/NEET logic — driven by a `categories` array):
+## Mock Data Extensions (`src/lib/studentMock.ts`)
 
-- `Student` — name, email, mobile, avatar, joinedAt, preferredCategoryId, streakDays, goldenBadges, loginMethods[]
-- `Category` — id, name, slug, icon, gradient (e.g. JEE, NEET, SSC, Banking, UPSC as seed data only)
-- `UnlockedTest` — id, name, categoryId, difficulty, validUntil, status (`not-started`|`in-progress`|`completed`), progressPct, attemptsLeft
-- `Purchase` — id, item, type (`test`|`subscription`), categoryId, amount, paidAt, method, status (`active`|`expired`|`refunded`)
-- `Subscription` — id, categoryId, planName, startedAt, expiresAt, benefits[], status
-- `Plan` (upgrade cards) — id, name, price, features[], highlight
-- `DashboardStats` — activeTests, avgScore, accuracy, totalAttempts, communityPosts, rankPercentile
-- Helpers: `daysRemaining(date)`, `getCategoryById(id)`
+Add to existing file (keep generic, category-driven):
 
-## Reusable Components (`src/components/student/`)
+- `Reward` — id, name, icon, badgeThreshold (25/50/75/100/150), unlocked, unlockedAt?
+- `Achievement` — id, title, earnedAt, type ("streak" | "badge" | "score" | "reward")
+- `ResultEntry` — id, testId, scorePct, accuracy, timeTakenMin, attemptedAt, subjectBreakdown[{subject, scorePct}]
+- `SubjectStat` — subject, attempts, avgScore, strength ("weak"|"average"|"strong")
+- `Recommendation` — id, type ("test"|"topic"|"challenge"), title, categoryId, reason
+- `NotificationPrefs` — email, push, sms, weeklyDigest, streakReminders
+- Constants: `REWARD_TIERS`, `BADGE_RULE` (score ≥70% + difficulty ∈ {Medium, Hard}), `TEST_VALIDITY_DAYS = 15`
+- Helpers: `getTestStatusColor(validUntil)` → `active|expiring|expired`, `getNextReward(badges)`, `getProgressToNextReward(badges)`
 
-- `DashboardShell.tsx` — sticky top bar (logo, search, theme toggle, avatar), responsive container, bottom padding for mobile nav
-- `BottomNavigation.tsx` — mobile-only (md:hidden), 5 tabs: Home, Mock Tests, Community, Results, Profile. Active-state highlight.
-- `DashboardHero.tsx` — gradient bg + animated glow blobs (CSS), glass card overlay; greeting based on time-of-day, name, preferred category chip, streak + badge widgets, active subscription pill
-- `StreakWidget.tsx` — 🔥 + count, gradient ring
-- `BadgeWidget.tsx` — 🏅 + count
-- `CountdownBadge.tsx` — pill showing "Xd left" / "Expires today" / "Expired", color-coded
-- `StatsCard.tsx` — icon, label, value, delta, tone variant (primary/success/warning/review)
-- `MockTestCard.tsx` — name, category chip, difficulty, validity countdown, primary CTA (Continue / Start / Reattempt based on status), progress bar
-- `PurchaseCard.tsx` — item, amount, paidAt, method, status badge, category chip
-- `SubscriptionCard.tsx` — plan name, category, benefits list, expiry countdown, manage button
-- `ProfileCard.tsx` — avatar, name, email/mobile, joined date, login methods (Email/Mobile/Google icons), preferred category, stat strip
-- `PlanCard.tsx` — upgrade plan tile with features + CTA (used on subscriptions page)
-- `SectionHeader.tsx` — title + optional "View all" link
+## New Reusable Components (`src/components/student/`)
+
+- `ProgressRing.tsx` — SVG circular progress (used for streak ring, reward progress)
+- `RewardCard.tsx` — tier card with lock/unlock state, glow on unlocked, progress bar to threshold
+- `AchievementPopup.tsx` — toast-style modal with confetti (CSS-only particles)
+- `RecommendationCard.tsx` — suggested test/topic/challenge with reason chip
+- `AnalyticsChart.tsx` — wrapper around Recharts (Line / Donut / Bar variants via prop)
+- `CategoryFilter.tsx` — horizontal scrollable category chip filter for personalization
+- `StreakCalendar.tsx` — 7-day calendar grid with flame icons on active days
+- `BadgeShowcase.tsx` — golden badge grid with shimmer animation
+- `EditProfileSheet.tsx` — slide-up sheet (Sheet component) for edit profile
+- `ConfettiBurst.tsx` — lightweight CSS confetti for reward unlocks
+
+Reuse existing: `DashboardShell`, `DashboardHero`, `StatsCard`, `MockTestCard`, `PurchaseCard`, `CountdownBadge`, `StreakWidget`, `BadgeWidget`, `SectionHeader`.
 
 ## Page Composition
 
-**`/dashboard`**
-1. `DashboardHero` (full width)
-2. 6 `StatsCard` grid: Active Tests, Avg Score, Accuracy, Total Attempts, Subscription Status, Community Activity
-3. "Active Mock Tests" section — horizontal scroll on mobile, grid on md+, `MockTestCard` x N
-4. Two-column (md+): Recent Purchases (compact list of `PurchaseCard`) + Active Subscriptions (compact `SubscriptionCard`)
-5. CTA banner: "Explore more categories"
+**`/dashboard` (updated home)**
+1. `DashboardHero` — add Next Reward preview pill ("🎁 Next: T-Shirt — 33 badges to go") + streak flame ring
+2. 6 quick stats: Attempts · Avg Score · Active Tests · Purchases · Streak · Accuracy
+3. `CategoryFilter` (sticky chip row) → filters Active Tests + Recommendations below
+4. Active Mock Tests (horizontal scroll on mobile, grid md+) with status color dots
+5. **Recommended for you** — 3 `RecommendationCard`s based on weak subjects
+6. Two-column: Recent Purchases + Active Subscriptions
+7. CTA banner: Explore categories
 
-**`/dashboard/profile`** — `ProfileCard` + tabs/sections: Login methods, Streak stats (with mini chart), Purchase count summary, Preferred category selector (mock).
+**`/dashboard/results`** (NEW)
+- Header stats: Best Score · Current Streak · Total Badges · Total Attempts
+- Line chart: score trend (last 10 attempts)
+- Donut chart: subject accuracy split
+- Bar chart: subject comparison (avg score per subject)
+- Weekly performance chart
+- Weak/Strong subject detection cards
+- Rank prediction card (per category, mock %ile)
+- Performance timeline (vertical list of recent results with score chip)
+- All charts lazy-loaded via `React.lazy` + Suspense
 
-**`/dashboard/mock-tests`** — Filter chips (All / In Progress / Completed / Expiring soon), grid of `MockTestCard`. Empty state.
+**`/dashboard/rewards`** (NEW)
+- Hero: current badges + ring progress to next tier + confetti on hover/unlock
+- Tier grid: 5 `RewardCard`s (Sticker → Premium Bag)
+- Achievement timeline (vertical, animated)
+- Locked rewards desaturated with lock icon; unlocked glow gold
 
-**`/dashboard/purchases`** — Filter (All / Tests / Subscriptions / Active / Expired), payment history table on desktop, `PurchaseCard` list on mobile. Total spent summary tile.
+**`/dashboard/settings`** (NEW)
+- Tabs/sections: Account · Notifications · Privacy · Appearance · Security
+- Change password (mock form), update mobile (mock), notification toggles (Switch), dark mode toggle (reuse `ThemeToggle`), logout all devices button, delete account confirmation
+- All form actions are mock (toast feedback via `sonner`)
 
-**`/dashboard/subscriptions`** — Active subscriptions grid + "Upgrade your plan" section with 3 `PlanCard` tiers.
+**`/dashboard/mock-tests`** (update)
+- Add status color dot (green/yellow/red) via `getTestStatusColor`
+- Add filter chip: "Expiring soon" → tests with daysRemaining ≤ 3
+- 15-day validity surfaced on card subtitle
+
+**`/dashboard/purchases`** (update)
+- Add type badge: `SINGLE_TEST` vs `CATEGORY_SUBSCRIPTION`
+- Search input (filter by item name)
+- Simple client-side pagination (10/page)
+
+**`/dashboard/profile`** (update)
+- "Edit Profile" button opens `EditProfileSheet` (mock save)
+- "Change Preferred Exam" inline category selector
+- Avatar uploader (mock — local FileReader preview only)
+
+**`/dashboard/community`** (NEW placeholder) — minimal "Coming soon" page so bottom-nav link is type-safe.
 
 ## Design System
 
-- Reuse existing OKLCH tokens in `src/styles.css` (primary, gradient-hero, success, warning, review, shadow-card, shadow-soft). No new color literals in components — use tokens.
-- Hero: `bg-[var(--gradient-hero)]` with absolutely-positioned blurred radial blobs animated via existing `animate-pulse` / new `animate-fade-in`.
-- Glassmorphism: `bg-card/60 backdrop-blur-md border border-white/10` over hero only — applied lightly elsewhere.
-- Dark mode: already supported via `ThemeToggle`; verify contrast on hero blobs.
-- Animations: `animate-fade-in`, `hover-scale`, `transition-transform` per existing utility set.
-- Mobile-first: stacked layouts, horizontal scroll lanes, sticky bottom nav with `pb-20 md:pb-8` on shells.
+- Reuse OKLCH tokens in `src/styles.css`. No raw color literals.
+- Indigo/purple gradients: existing `--gradient-hero` and category gradients.
+- Glassmorphism: `bg-card/60 backdrop-blur-md border border-white/10` on hero + reward hero only.
+- Glow effects: radial blurred blobs + `shadow-[0_0_40px_-10px_oklch(var(--primary)/0.6)]` on unlocked rewards.
+- Animations: existing `animate-fade-in`, `hover-scale`; add lightweight CSS keyframes for flame pulse + confetti.
+- Mobile-first: 360px tested, sticky bottom nav, `pb-24 md:pb-10` shell padding already in place.
+- Dark mode: verified via existing `ThemeToggle`.
 
-## Integration Notes
+## Personalization
 
-- Update `src/components/BottomNav.tsx` global nav: leave site-wide nav as-is; the dashboard uses its own `BottomNavigation` inside `DashboardShell` (hide global one on `/dashboard/*` via path check, or simply rely on dashboard shell's own bar — will hide global BottomNav on `/dashboard` paths to avoid duplication).
-- Navbar link to `/dashboard` already exists.
-- `routeTree.gen.ts` is auto-generated — do not edit.
-- No backend; all data from `studentMock.ts`. No new packages required (Recharts already installed for profile mini-chart).
+`CategoryFilter` writes to `useState` on home page (no global store needed). Filters: Active Tests grid, Recommendations grid, optional Subscriptions list. "All" chip resets. Stored ephemerally; preferred category from `student.preferredCategoryId` is the default selection.
+
+## Performance
+
+- `React.lazy` for the 4 chart components on `/results`
+- `MockTestCard` list memoized via `useMemo` on filter changes
+- Pagination on Purchases (slice-based, 10/page)
+- Recharts already installed; no new packages
 
 ## Out of Scope
 
-- Real auth, real payments, real test-taking changes.
-- Editing existing `/admin`, `/exam`, `/mock-test`, `/result` routes.
-- Community page content (bottom-nav link can route to `/dashboard` placeholder or `#`).
+- Real auth, real payments, real test submission
+- Editing `/admin/*`, `/exam/*`, `/mock-test/*`, `/result/*` routes
+- Backend persistence — all mutations are toast-only mocks
+- Real file uploads — avatar uses FileReader preview only

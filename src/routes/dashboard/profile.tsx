@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProfileCard } from "@/components/student/ProfileCard";
 import { SectionHeader } from "@/components/student/SectionHeader";
+import { EditProfileSheet } from "@/components/student/EditProfileSheet";
 import { student, purchases, streakSeries, categories } from "@/lib/studentMock";
 import { Mail, Phone, ShieldCheck, Flame, Trophy, Wallet } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, XAxis, Tooltip } from "recharts";
@@ -26,6 +27,9 @@ function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <EditProfileSheet />
+      </div>
       <ProfileCard />
 
       <div className="grid gap-4 md:grid-cols-3">

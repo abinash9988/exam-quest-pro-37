@@ -19,9 +19,13 @@ import { Route as ResultResultIdRouteImport } from './routes/result/$resultId'
 import { Route as MockTestSlugRouteImport } from './routes/mock-test/$slug'
 import { Route as ExamExamIdRouteImport } from './routes/exam/$examId'
 import { Route as DashboardSubscriptionsRouteImport } from './routes/dashboard/subscriptions'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as DashboardRewardsRouteImport } from './routes/dashboard/rewards'
+import { Route as DashboardResultsRouteImport } from './routes/dashboard/results'
 import { Route as DashboardPurchasesRouteImport } from './routes/dashboard/purchases'
 import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
 import { Route as DashboardMockTestsRouteImport } from './routes/dashboard/mock-tests'
+import { Route as DashboardCommunityRouteImport } from './routes/dashboard/community'
 import { Route as AdminQuestionsIndexRouteImport } from './routes/admin/questions/index'
 import { Route as AdminImportIndexRouteImport } from './routes/admin/import/index'
 import { Route as AdminQuestionsCreateRouteImport } from './routes/admin/questions/create'
@@ -79,6 +83,21 @@ const DashboardSubscriptionsRoute = DashboardSubscriptionsRouteImport.update({
   path: '/subscriptions',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardRewardsRoute = DashboardRewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardResultsRoute = DashboardResultsRouteImport.update({
+  id: '/results',
+  path: '/results',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardPurchasesRoute = DashboardPurchasesRouteImport.update({
   id: '/purchases',
   path: '/purchases',
@@ -92,6 +111,11 @@ const DashboardProfileRoute = DashboardProfileRouteImport.update({
 const DashboardMockTestsRoute = DashboardMockTestsRouteImport.update({
   id: '/mock-tests',
   path: '/mock-tests',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardCommunityRoute = DashboardCommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
   getParentRoute: () => DashboardRoute,
 } as any)
 const AdminQuestionsIndexRoute = AdminQuestionsIndexRouteImport.update({
@@ -129,9 +153,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard/community': typeof DashboardCommunityRoute
   '/dashboard/mock-tests': typeof DashboardMockTestsRoute
   '/dashboard/profile': typeof DashboardProfileRoute
   '/dashboard/purchases': typeof DashboardPurchasesRoute
+  '/dashboard/results': typeof DashboardResultsRoute
+  '/dashboard/rewards': typeof DashboardRewardsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/subscriptions': typeof DashboardSubscriptionsRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
@@ -148,9 +176,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard/community': typeof DashboardCommunityRoute
   '/dashboard/mock-tests': typeof DashboardMockTestsRoute
   '/dashboard/profile': typeof DashboardProfileRoute
   '/dashboard/purchases': typeof DashboardPurchasesRoute
+  '/dashboard/results': typeof DashboardResultsRoute
+  '/dashboard/rewards': typeof DashboardRewardsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/subscriptions': typeof DashboardSubscriptionsRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
@@ -170,9 +202,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard/community': typeof DashboardCommunityRoute
   '/dashboard/mock-tests': typeof DashboardMockTestsRoute
   '/dashboard/profile': typeof DashboardProfileRoute
   '/dashboard/purchases': typeof DashboardPurchasesRoute
+  '/dashboard/results': typeof DashboardResultsRoute
+  '/dashboard/rewards': typeof DashboardRewardsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/subscriptions': typeof DashboardSubscriptionsRoute
   '/exam/$examId': typeof ExamExamIdRoute
   '/mock-test/$slug': typeof MockTestSlugRoute
@@ -193,9 +229,13 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/dashboard/community'
     | '/dashboard/mock-tests'
     | '/dashboard/profile'
     | '/dashboard/purchases'
+    | '/dashboard/results'
+    | '/dashboard/rewards'
+    | '/dashboard/settings'
     | '/dashboard/subscriptions'
     | '/exam/$examId'
     | '/mock-test/$slug'
@@ -212,9 +252,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/dashboard/community'
     | '/dashboard/mock-tests'
     | '/dashboard/profile'
     | '/dashboard/purchases'
+    | '/dashboard/results'
+    | '/dashboard/rewards'
+    | '/dashboard/settings'
     | '/dashboard/subscriptions'
     | '/exam/$examId'
     | '/mock-test/$slug'
@@ -233,9 +277,13 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/dashboard'
+    | '/dashboard/community'
     | '/dashboard/mock-tests'
     | '/dashboard/profile'
     | '/dashboard/purchases'
+    | '/dashboard/results'
+    | '/dashboard/rewards'
+    | '/dashboard/settings'
     | '/dashboard/subscriptions'
     | '/exam/$examId'
     | '/mock-test/$slug'
@@ -333,6 +381,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSubscriptionsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/rewards': {
+      id: '/dashboard/rewards'
+      path: '/rewards'
+      fullPath: '/dashboard/rewards'
+      preLoaderRoute: typeof DashboardRewardsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/results': {
+      id: '/dashboard/results'
+      path: '/results'
+      fullPath: '/dashboard/results'
+      preLoaderRoute: typeof DashboardResultsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/purchases': {
       id: '/dashboard/purchases'
       path: '/purchases'
@@ -352,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/mock-tests'
       fullPath: '/dashboard/mock-tests'
       preLoaderRoute: typeof DashboardMockTestsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/community': {
+      id: '/dashboard/community'
+      path: '/community'
+      fullPath: '/dashboard/community'
+      preLoaderRoute: typeof DashboardCommunityRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/admin/questions/': {
@@ -422,17 +498,25 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface DashboardRouteChildren {
+  DashboardCommunityRoute: typeof DashboardCommunityRoute
   DashboardMockTestsRoute: typeof DashboardMockTestsRoute
   DashboardProfileRoute: typeof DashboardProfileRoute
   DashboardPurchasesRoute: typeof DashboardPurchasesRoute
+  DashboardResultsRoute: typeof DashboardResultsRoute
+  DashboardRewardsRoute: typeof DashboardRewardsRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardSubscriptionsRoute: typeof DashboardSubscriptionsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardCommunityRoute: DashboardCommunityRoute,
   DashboardMockTestsRoute: DashboardMockTestsRoute,
   DashboardProfileRoute: DashboardProfileRoute,
   DashboardPurchasesRoute: DashboardPurchasesRoute,
+  DashboardResultsRoute: DashboardResultsRoute,
+  DashboardRewardsRoute: DashboardRewardsRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardSubscriptionsRoute: DashboardSubscriptionsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
@@ -453,13 +537,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
