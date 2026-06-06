@@ -10,7 +10,7 @@ import {
   POLL_INTERVAL_MS,
   topContributorsByCommunity,
   weeklyActivityByCommunity,
-  type Message,
+  type Community,
 } from "@/lib/communityMock";
 import { student } from "@/lib/studentMock";
 import { CommunityBanner } from "@/components/community/CommunityBanner";
