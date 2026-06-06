@@ -11,6 +11,7 @@ import {
   topContributorsByCommunity,
   weeklyActivityByCommunity,
   type Community,
+  type Message,
 } from "@/lib/communityMock";
 import { student } from "@/lib/studentMock";
 import { CommunityBanner } from "@/components/community/CommunityBanner";
@@ -55,7 +56,7 @@ function CommunityFeedPage() {
   return <UnlockedCommunity community={community} />;
 }
 
-function UnlockedCommunity({ community }: { community: ReturnType<typeof getCommunityBySlug> extends infer T ? NonNullable<T> : never }) {
+function UnlockedCommunity({ community }: { community: Community }) {
   const seed = useMemo(() => messagesByCommunity[community.id] ?? [], [community.id]);
   const [messages, setMessages] = useState<Message[]>(seed);
   const pinned = pinnedByCommunity[community.id] ?? [];
