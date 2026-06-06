@@ -10,10 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CommunityRouteImport } from './routes/community'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MockTestIndexRouteImport } from './routes/mock-test/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as CommunityIndexRouteImport } from './routes/community/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as ResultResultIdRouteImport } from './routes/result/$resultId'
 import { Route as MockTestSlugRouteImport } from './routes/mock-test/$slug'
@@ -26,6 +28,7 @@ import { Route as DashboardPurchasesRouteImport } from './routes/dashboard/purch
 import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile'
 import { Route as DashboardMockTestsRouteImport } from './routes/dashboard/mock-tests'
 import { Route as DashboardCommunityRouteImport } from './routes/dashboard/community'
+import { Route as CommunitySlugRouteImport } from './routes/community/$slug'
 import { Route as AdminQuestionsIndexRouteImport } from './routes/admin/questions/index'
 import { Route as AdminImportIndexRouteImport } from './routes/admin/import/index'
 import { Route as AdminQuestionsCreateRouteImport } from './routes/admin/questions/create'
@@ -36,6 +39,11 @@ import { Route as AdminImportReviewJobIdRouteImport } from './routes/admin/impor
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunityRoute = CommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -57,6 +65,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DashboardRoute,
+} as any)
+const CommunityIndexRoute = CommunityIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => CommunityRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
@@ -118,6 +131,11 @@ const DashboardCommunityRoute = DashboardCommunityRouteImport.update({
   path: '/community',
   getParentRoute: () => DashboardRoute,
 } as any)
+const CommunitySlugRoute = CommunitySlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CommunityRoute,
+} as any)
 const AdminQuestionsIndexRoute = AdminQuestionsIndexRouteImport.update({
   id: '/questions/',
   path: '/questions/',
@@ -152,7 +170,9 @@ const AdminImportReviewJobIdRoute = AdminImportReviewJobIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/community': typeof CommunityRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
+  '/community/$slug': typeof CommunitySlugRoute
   '/dashboard/community': typeof DashboardCommunityRoute
   '/dashboard/mock-tests': typeof DashboardMockTestsRoute
   '/dashboard/profile': typeof DashboardProfileRoute
@@ -165,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/community/': typeof CommunityIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/mock-test/': typeof MockTestIndexRoute
   '/admin/import/history': typeof AdminImportHistoryRoute
@@ -176,6 +197,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/community/$slug': typeof CommunitySlugRoute
   '/dashboard/community': typeof DashboardCommunityRoute
   '/dashboard/mock-tests': typeof DashboardMockTestsRoute
   '/dashboard/profile': typeof DashboardProfileRoute
@@ -188,6 +210,7 @@ export interface FileRoutesByTo {
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
   '/admin': typeof AdminIndexRoute
+  '/community': typeof CommunityIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/mock-test': typeof MockTestIndexRoute
   '/admin/import/history': typeof AdminImportHistoryRoute
@@ -201,7 +224,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/community': typeof CommunityRouteWithChildren
   '/dashboard': typeof DashboardRouteWithChildren
+  '/community/$slug': typeof CommunitySlugRoute
   '/dashboard/community': typeof DashboardCommunityRoute
   '/dashboard/mock-tests': typeof DashboardMockTestsRoute
   '/dashboard/profile': typeof DashboardProfileRoute
@@ -214,6 +239,7 @@ export interface FileRoutesById {
   '/mock-test/$slug': typeof MockTestSlugRoute
   '/result/$resultId': typeof ResultResultIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/community/': typeof CommunityIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/mock-test/': typeof MockTestIndexRoute
   '/admin/import/history': typeof AdminImportHistoryRoute
@@ -228,7 +254,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/community'
     | '/dashboard'
+    | '/community/$slug'
     | '/dashboard/community'
     | '/dashboard/mock-tests'
     | '/dashboard/profile'
@@ -241,6 +269,7 @@ export interface FileRouteTypes {
     | '/mock-test/$slug'
     | '/result/$resultId'
     | '/admin/'
+    | '/community/'
     | '/dashboard/'
     | '/mock-test/'
     | '/admin/import/history'
@@ -252,6 +281,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/community/$slug'
     | '/dashboard/community'
     | '/dashboard/mock-tests'
     | '/dashboard/profile'
@@ -264,6 +294,7 @@ export interface FileRouteTypes {
     | '/mock-test/$slug'
     | '/result/$resultId'
     | '/admin'
+    | '/community'
     | '/dashboard'
     | '/mock-test'
     | '/admin/import/history'
@@ -276,7 +307,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/community'
     | '/dashboard'
+    | '/community/$slug'
     | '/dashboard/community'
     | '/dashboard/mock-tests'
     | '/dashboard/profile'
@@ -289,6 +322,7 @@ export interface FileRouteTypes {
     | '/mock-test/$slug'
     | '/result/$resultId'
     | '/admin/'
+    | '/community/'
     | '/dashboard/'
     | '/mock-test/'
     | '/admin/import/history'
@@ -302,6 +336,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  CommunityRoute: typeof CommunityRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
   ExamExamIdRoute: typeof ExamExamIdRoute
   MockTestSlugRoute: typeof MockTestSlugRoute
@@ -316,6 +351,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/community': {
+      id: '/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof CommunityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -345,6 +387,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/community/': {
+      id: '/community/'
+      path: '/'
+      fullPath: '/community/'
+      preLoaderRoute: typeof CommunityIndexRouteImport
+      parentRoute: typeof CommunityRoute
     }
     '/admin/': {
       id: '/admin/'
@@ -430,6 +479,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCommunityRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/community/$slug': {
+      id: '/community/$slug'
+      path: '/$slug'
+      fullPath: '/community/$slug'
+      preLoaderRoute: typeof CommunitySlugRouteImport
+      parentRoute: typeof CommunityRoute
+    }
     '/admin/questions/': {
       id: '/admin/questions/'
       path: '/questions'
@@ -497,6 +553,20 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CommunityRouteChildren {
+  CommunitySlugRoute: typeof CommunitySlugRoute
+  CommunityIndexRoute: typeof CommunityIndexRoute
+}
+
+const CommunityRouteChildren: CommunityRouteChildren = {
+  CommunitySlugRoute: CommunitySlugRoute,
+  CommunityIndexRoute: CommunityIndexRoute,
+}
+
+const CommunityRouteWithChildren = CommunityRoute._addFileChildren(
+  CommunityRouteChildren,
+)
+
 interface DashboardRouteChildren {
   DashboardCommunityRoute: typeof DashboardCommunityRoute
   DashboardMockTestsRoute: typeof DashboardMockTestsRoute
@@ -528,6 +598,7 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  CommunityRoute: CommunityRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
   ExamExamIdRoute: ExamExamIdRoute,
   MockTestSlugRoute: MockTestSlugRoute,
@@ -537,13 +608,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

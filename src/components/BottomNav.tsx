@@ -11,7 +11,7 @@ const items = [
 export function BottomNav() {
   const path = useRouterState({ select: (r) => r.location.pathname });
   // Hide on exam page and dashboard (dashboard has its own bottom nav)
-  if (path.startsWith("/exam/") || path.startsWith("/dashboard")) return null;
+  if (path.startsWith("/exam/") || path.startsWith("/dashboard") || path.startsWith("/community")) return null;
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur-md md:hidden">
       <div className="mx-auto grid max-w-md grid-cols-4">
