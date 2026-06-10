@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Eye, EyeOff, GraduationCap, ArrowLeft, ShieldCheck } from "lucide-react";
@@ -20,9 +20,8 @@ export const Route = createFileRoute("/auth")({
   beforeLoad: ({ search }) => {
     const user = authStore.getUser();
     if (user) {
-      throw (user.role === "admin"
-        ? { to: "/admin" }
-        : { to: search.redirect ?? "/dashboard" });
+      if (user.role === "admin") throw redirect({ to: "/admin" });
+      throw redirect({ to: search.redirect ?? "/dashboard" });
     }
   },
   component: AuthPage,
