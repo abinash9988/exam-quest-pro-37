@@ -1,116 +1,69 @@
+## Frontend-Only Auth System
 
-# Community System — Implementation Plan
+Mock authentication stored in `localStorage`. No backend. Hardcoded admin emails decide role on login. Admins go to `/admin`, students go to `/dashboard`.
 
-Extends the existing Student Dashboard. The `/dashboard/community` placeholder is replaced by a full community ecosystem with category-scoped discussion rooms, access gating based on purchases/subscriptions, and a study-focused (non-social-media) UI.
+### 1. Auth store (`src/lib/authStore.ts` — new)
 
-## Routes
+- Types: `AuthUser = { id, name, email, role: "student" | "admin", avatar? }`.
+- Constants: `ADMIN_EMAILS = ["admin@mockarena.in"]`, `AUTH_KEY = "mockarena-auth"`.
+- Tiny pub/sub store: `getUser()`, `signIn({email, password})`, `signUp({name, email, password})`, `signOut()`, `subscribe(cb)`.
+- `signIn` / `signUp`: validate inputs, derive role from `ADMIN_EMAILS.includes(email)`, persist to `localStorage`, notify subscribers. No password verification (mock) — any non-empty password works; for admin, require password === `admin123` so it isn't trivially bypassed in a demo.
+- Hook: `useAuth()` returns `{ user, signIn, signUp, signOut }` using `useSyncExternalStore`.
 
-```
-src/routes/community.tsx                 (NEW) layout: sidebar + <Outlet /> + right rail
-src/routes/community/index.tsx           (NEW) overview: joined + locked + discover
-src/routes/community/$slug.tsx           (NEW) feed for jee/neet/ssc/banking/upsc
-src/routes/dashboard/community.tsx       (UPDATE) becomes a redirect → /community
-```
+### 2. Auth page (`src/routes/auth.tsx` — new)
 
-Slug-driven, not 5 hardcoded files — scales to any future category. Validates `params.slug` against `categories[].slug`; unknown slug → `notFound()`. Each route gets its own `head()` with unique title + description + og.
+- Public route `/auth` with two tabs: **Sign In** and **Sign Up** (controlled by `?mode=signin|signup` search param).
+- Sign In: email + password. Sign Up: name + email + password + confirm.
+- Zod validation, inline errors, show/hide password.
+- On success:
+  - `role === "admin"` → `navigate({ to: "/admin" })`
+  - `role === "student"` → `navigate({ to: "/dashboard" })`
+- Small helper text under Sign In: "Admin? Use your admin email." (no credentials shown).
+- Premium glassmorphism card matching existing design tokens (`--gradient-hero`, `--shadow-elevated`).
 
-`BottomNavigation.tsx` Community tab repoints to `/community`. `DashboardShell` desktop nav same. Top `BottomNav.tsx` visibility logic extended to also hide on `/community/*`.
+### 3. Header (`src/components/Navbar.tsx` — edit)
 
-## Access Gating
+Logged OUT:
 
-Pure derived logic in `src/lib/communityMock.ts`:
+- Logo + MockArena · Mock Tests · **Sign In** (ghost) · **Sign Up** (outline) · ThemeToggle · **Start Free** (primary, links to `/auth?mode=signup`).
+- Remove `Dashboard` and `Admin` links from the public header.
 
-```ts
-hasCommunityAccess(categoryId): boolean
-  = subscriptions.some(s => s.categoryId === categoryId && s.status === "active")
-  || purchases.some(p => p.categoryId === categoryId && p.status === "active")
-```
+Logged IN (student):
 
-- Unlocked → full feed + composer.
-- Locked → `LockedCommunityCard` with category banner, lock icon, message ("Purchase any mock test or subscribe to unlock"), and two CTAs → `/dashboard/mock-tests` and `/dashboard/subscriptions`. No feed mounted.
+- Logo + MockArena · Mock Tests · Dashboard · ThemeToggle · **Avatar menu** (initials circle) with dropdown: name/email header, "Dashboard", "Profile", "Logout".
 
-Helpers exported: `joinedCommunities()`, `lockedCommunities()`, `getCommunityBySlug(slug)`.
+Logged IN (admin):
 
-## Mock Data (`src/lib/communityMock.ts`)
+- Logo + MockArena · Admin · ThemeToggle · Avatar menu (Admin badge) with "Admin Panel", "Logout".
 
-New file (keeps `studentMock.ts` clean). Reuses existing `categories`, `purchases`, `subscriptions`, `student`.
+Mobile menu mirrors the same logic.
 
-Types:
-- `Community` — id, categoryId, name (e.g. "JEE Aspirants"), tagline, bannerGradient, activeMembers, totalDiscussions, dailyMessages
-- `Message` — id, communityId, authorName, authorInitials, text, sentAt, isPinned?
-- `PinnedItem` — id, communityId, kind ("daily"|"alert"|"motivation"|"announcement"), title, body, postedAt
-- `TopContributor` — name, initials, messages, badges
-- `WeeklyActivityPoint` — day, messages
+### 4. Route guards
 
-Constants: `MAX_MESSAGE_LEN = 500`, `MESSAGES_PER_PAGE = 30`, `POLL_INTERVAL_MS = 12000`.
+Create `src/lib/routeGuards.ts` with `requireStudent()` and `requireAdmin()` that read `localStorage` synchronously and call TanStack's `redirect({ to: "/auth", search: { redirect: location.href } })` from `beforeLoad`.
 
-Seed ~40 messages per community (study-focused: "Anyone solved Q22 from JEE 2023 paper?", "Sharing my Bio revision schedule…"), 3-4 pinned items per community, 5 contributors, 7-day activity series.
+Apply in existing parent routes:
 
-## Reusable Components (`src/components/community/`)
+- `src/routes/dashboard.tsx` → `beforeLoad: requireStudent` (admins also redirected to `/admin`, not allowed in dashboard per user requirement).
+- `src/routes/admin.tsx` → `beforeLoad: requireAdmin`.
 
-- `CommunityShell.tsx` — desktop 3-col grid (`sidebar | feed | stats`), mobile single column with sticky composer; consumes `<Outlet />`
-- `CommunitySidebar.tsx` — search input, category chip filters, Joined / Locked sections, each row uses `CommunityCard`
-- `CommunityCard.tsx` — compact row: gradient dot, name, member count, lock badge if locked, active indicator
-- `CommunityBanner.tsx` — gradient header per community with name, tagline, member/discussion counts
-- `DiscussionFeed.tsx` — virtualized message list (windowed via simple slice + IntersectionObserver "load more"), groups by day with date separators
-- `MessageBubble.tsx` — three-line layout only: bold name · small time · text. No avatars, no reactions, no replies, no media
-- `StickyMessageInput.tsx` — sticky bottom textarea, send button, live `current / MAX_MESSAGE_LEN` counter, disabled when over limit or empty; on send appends to local state + toast
-- `PinnedMessageCard.tsx` — color-coded by `kind`, pin icon, collapsible body
-- `CommunityStatsCard.tsx` — right rail: active students, total discussions, daily messages
-- `ActivityGraph.tsx` — lightweight 7-day bar chart via Recharts `BarChart` (lazy-loaded)
-- `LockedCommunityCard.tsx` — premium lock state + unlock CTAs
-- `TopContributorsList.tsx` — name + initials chip + message count
-- `EngagementStrip.tsx` — streak highlight, top badge earners, daily motivation banner, weekly challenge card (horizontal scroll on mobile)
+Public routes untouched: `/`, `/mock-test`, `/mock-test/$slug`, `/community/*`, `/auth`.
 
-## Page Composition
+### 5. Landing page CTAs (`src/routes/index.tsx` — minor edit)
 
-**`/community` (overview)**
-- `CommunityBanner` (generic gradient) with greeting
-- "Your Communities" grid → joined `CommunityCard`s linking to `/community/$slug`
-- "Locked Communities" grid → `LockedCommunityCard`s
-- `EngagementStrip` at bottom
+Wire any "Sign Up" / "Get Started" / hero CTAs to `/auth?mode=signup` and "Sign In" to `/auth?mode=signin`. Keep all existing copy and layout otherwise.
 
-**`/community/$slug` (feed)**
-- Access check first. If locked → `LockedCommunityCard` full-bleed, no feed.
-- Else: `CommunityBanner` (category-themed) → `PinnedMessageCard` carousel (daily discussion + alerts) → `DiscussionFeed` → `StickyMessageInput`
-- Right rail (desktop only): `CommunityStatsCard`, `ActivityGraph`, `TopContributorsList`, mini `EngagementStrip`
+### 6. Logout flow
 
-## State & "Live" Behavior (mock)
+Avatar menu → Logout: clears `localStorage` auth key, notifies subscribers, `navigate({ to: "/" })`.
 
-- Messages held in `useState`, seeded from mock data per slug
-- `setInterval` every `POLL_INTERVAL_MS` injects 0–2 simulated incoming messages (round-robin from a canned pool of study lines) — gives a "live" feel without any backend
-- New user-sent messages prepended/appended locally + toast confirmation
-- Pagination: initial 30 messages, "Load earlier" button slices next page
+---
 
-## Performance
+### Files
 
-- Slug route uses `React.useMemo` for filtered messages
-- `ActivityGraph` lazy-loaded via `React.lazy` + Suspense (Recharts is heavy)
-- Polling cleared on unmount
-- Message list windowed by page slice (no full re-render on append)
-- No avatars/media → minimal DOM weight per bubble
+**New:** `src/lib/authStore.ts`, `src/lib/routeGuards.ts`, `src/routes/auth.tsx`, `src/components/UserMenu.tsx`.
+**Edited:** `src/components/Navbar.tsx`, `src/routes/dashboard.tsx`, `src/routes/admin.tsx`, `src/routes/index.tsx` (CTA links only).
 
-## Design System
+### Out of scope
 
-- Reuse OKLCH tokens. Gradients from each `category.gradient` for banner and accents
-- Glassmorphism only on `CommunityBanner` and right-rail stat card
-- Mobile-first: 360px tested, sticky composer above bottom nav (`bottom-[var(--bottomnav-h)]`)
-- Dark-mode verified, no raw color literals
-
-## Out of Scope
-
-- Real auth, real messaging backend, real-time websockets
-- Reactions, likes, DMs, follows, media, profile photos — explicitly excluded per spec
-- Editing `/admin/*`, `/exam/*`, `/mock-test/*`, `/result/*`
-- Persistence — messages reset on reload
-
-## Files Created
-- `src/lib/communityMock.ts`
-- `src/components/community/` (12 components listed above)
-- `src/routes/community.tsx`, `src/routes/community/index.tsx`, `src/routes/community/$slug.tsx`
-
-## Files Edited
-- `src/routes/dashboard/community.tsx` → redirect to `/community`
-- `src/components/student/BottomNavigation.tsx` (community tab href)
-- `src/components/student/DashboardShell.tsx` (nav link)
-- `src/components/BottomNav.tsx` (hide on `/community/*`)
+Real backend, password reset, email verification, OAuth, persistent user database, profile editing beyond what already exists.
