@@ -46,14 +46,15 @@ function Hero() {
           </p>
           <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
-              to="/mock-test"
+              to="/auth"
+              search={{ mode: "signup" }}
               className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-elevated)] transition hover:scale-[1.02] sm:w-auto"
             >
               Start Free Mock Test
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <Link to="/dashboard" className="text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
-              See your dashboard →
+            <Link to="/auth" search={{ mode: "signin" }} className="text-sm font-medium text-muted-foreground underline-offset-4 hover:underline">
+              Already have an account? Sign in →
             </Link>
           </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
