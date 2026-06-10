@@ -21,7 +21,7 @@ export const Route = createFileRoute("/auth")({
     const user = authStore.getUser();
     if (user) {
       if (user.role === "admin") throw redirect({ to: "/admin" });
-      throw redirect({ to: search.redirect ?? "/dashboard" });
+      throw redirect({ to: "/dashboard" });
     }
   },
   component: AuthPage,
@@ -35,7 +35,7 @@ function AuthPage() {
   useEffect(() => {
     if (user) {
       if (user.role === "admin") navigate({ to: "/admin" });
-      else navigate({ to: redirect ?? "/dashboard" });
+      else navigate({ to: "/dashboard" });
     }
   }, [user, navigate, redirect]);
 
@@ -126,7 +126,7 @@ function SignInForm({ redirect }: { redirect?: string }) {
     try {
       const user = authStore.signIn(parsed.data);
       if (user.role === "admin") navigate({ to: "/admin" });
-      else navigate({ to: redirect ?? "/dashboard" });
+      else navigate({ to: "/dashboard" });
     } catch (err) {
       setErrors({ form: err instanceof Error ? err.message : "Sign in failed" });
       setSubmitting(false);
@@ -207,7 +207,7 @@ function SignUpForm({ redirect }: { redirect?: string }) {
     try {
       const user = authStore.signUp(parsed.data);
       if (user.role === "admin") navigate({ to: "/admin" });
-      else navigate({ to: redirect ?? "/dashboard" });
+      else navigate({ to: "/dashboard" });
     } catch (err) {
       setErrors({ form: err instanceof Error ? err.message : "Sign up failed" });
       setSubmitting(false);
